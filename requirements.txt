@@ -1,0 +1,14 @@
+# Core dependencies
+RPi.GPIO>=0.7.1        # For GPIO control on Raspberry Pi
+pyserial>=3.5          # For serial communication with scanner and printer
+python-barcode>=0.14.0 # For barcode generation
+Pillow>=9.0.0         # For image processing
+
+# GUI dependencies
+tk>=0.1.0             # Tkinter for GUI (usually comes with Python)
+
+# Optional but recommended
+numpy>=1.21.0         # For numerical operations
+pytest>=7.0.0         # For running tests
+python-dotenv>=0.19.0 # For environment variables
+requests>=2.26.0      # For potential future API integrations
