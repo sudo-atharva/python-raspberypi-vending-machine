@@ -1,0 +1,56 @@
+{
+    "1": {
+        "name": "Paracetamol",
+        "description": "Pain reliever and fever reducer",
+        "slot": 1,
+        "price": 5.0
+    },
+    "2": {
+        "name": "Cough Syrup",
+        "description": "Relieves cough and sore throat",
+        "slot": 2,
+        "price": 7.0
+    },
+    "3": {
+        "name": "Antacid",
+        "description": "Relieves heartburn and indigestion",
+        "slot": 3,
+        "price": 4.0
+    },
+    "4": {
+        "name": "Allergy Pills",
+        "description": "Relieves allergy symptoms",
+        "slot": 4,
+        "price": 6.0
+    },
+    "5": {
+        "name": "Vitamin C",
+        "description": "Boosts immune system",
+        "slot": 5,
+        "price": 8.0
+    },
+    "6": {
+        "name": "Pain Relief Gel",
+        "description": "Topical pain relief",
+        "slot": 6,
+        "price": 9.0
+    },
+    "7": {
+        "name": "Eye Drops",
+        "description": "Relieves dry eyes",
+        "slot": 7,
+        "price": 5.5
+    },
+    "8": {
+        "name": "Bandages",
+        "description": "First aid bandages",
+        "slot": 8,
+        "price": 3.0
+    },
+    "9": {
+        "name": "Throat Lozenges",
+        "description": "Soothes sore throat",
+        "slot": 9,
+        "price": 4.5
+    }
+}

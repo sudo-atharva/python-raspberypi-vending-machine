@@ -1,0 +1,49 @@
+# Medicine Vending Machine
+## Project Structure Created:
+```
+medicine_vending_machine/
+├── main.py              # Main entry point
+├── gui.py               # Tkinter touchscreen GUI
+├── scanner.py           # Barcode scanner handling
+├── motor_control.py     # Motor control for dispensing
+├── printer.py           # Thermal receipt printing
+├── database.py          # JSON data management
+├── config.py            # Hardware configurations
+├── data/
+│   ├── medicines.json   # Medicine catalog
+│   ├── users.json       # User database
+│   ├── questionnaire.json # MCQ data
+│   └── transactions.log # Transaction log
+└── assets/
+    └── images/          # Directory for medicine images
+```
+
+## Key Features Implemented:
+
+### Hardware Integration:
+- **Motor Control**: GPIO-based control for 9 dispensing motors with forward/reverse functionality
+- **Barcode Scanner**: Serial communication with GM812L scanner
+- **Thermal Printer**: ESC/POS compatible receipt printing
+- **Touchscreen GUI**: Full Tkinter interface optimized for 7-inch display
+
+### Software Workflow:
+1. **User Authentication**: Barcode scan → User lookup → Welcome screen
+2. **Medicine Selection**: Grid catalog display + "I don't know" option
+3. **MCQ System**: Symptom-based questionnaire → Medicine recommendation
+4. **Dispensing**: Motor activation → Receipt printing → Transaction logging
+
+### Data Management:
+- JSON-based storage for medicines, users, and questionnaires
+- Transaction logging with timestamps
+- Modular database functions for easy expansion
+
+## Dependencies Required:
+- `pyserial` (for scanner and printer)
+- `RPi.GPIO` (for motor control)
+- `tkinter` (built-in with Python)
+- `json` (built-in)
+
+## Usage:
+Run `python main.py` from the `medicine_vending_machine/` directory. The system will prompt for barcode scan, then display the touchscreen interface.
+
+The project is fully modular and ready for deployment on Raspberry Pi OS. You can add medicine images to the `assets/images/` directory and update the GUI to display them alongside the medicine names.

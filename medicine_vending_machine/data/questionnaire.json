@@ -1,0 +1,25 @@
+{
+    "questions": [
+        {
+            "text": "What symptoms are you experiencing?",
+            "options": [
+                {
+                    "text": "Headache or Fever",
+                    "medicine": "1"
+                },
+                {
+                    "text": "Cough or Sore Throat",
+                    "medicine": "2"
+                },
+                {
+                    "text": "Heartburn or Indigestion",
+                    "medicine": "3"
+                },
+                {
+                    "text": "Allergy Symptoms",
+                    "medicine": "4"
+                }
+            ]
+        }
+    ]
+}
