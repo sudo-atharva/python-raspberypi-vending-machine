@@ -20,14 +20,11 @@ from motor_control import dispense
 # without changing other files.
 
 def print_order_receipt(user_id: str, user_name: str, medicine_name: str, slot_id: int, amount: float) -> None:
-    try:
-        import serial  # Imported here to avoid dependency issues on non-RPi dev machines
+    init_printer = b"\x1b\x40"  # Initialize printer
+    feed_lines = b"\x1b\x64\x04"  # Print and feed n lines (n=4)
+    cut_paper = b"\x1d\x56\x42\x00"  # Cut paper
 
-        ser = serial.Serial(PRINTER_PORT, PRINTER_BAUDRATE, timeout=1)
-        init_printer = b"\x1b\x40"  # Initialize printer
-        cut_paper = b"\x1d\x56\x42\x00"  # Cut paper
-
-        receipt_text = f"""
+    receipt_text = f"""
 Medicine Vending Machine Receipt
 
 User ID: {user_id}
@@ -38,22 +35,35 @@ Date/Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
 Thank you for your payment!
 """
-        # Ensure ESC/POS expects LF line endings and some feed before cutting
-        feed_lines = b"\x1b\x64\x04"  # Print and feed n lines (n=4)
-        ser.write(init_printer)
-        ser.write(receipt_text.replace('\r\n', '\n').encode("utf-8"))
-        ser.write(b"\n\n")
-        ser.write(feed_lines)
-        ser.flush()
-        try:
-            import time as _t
-            _t.sleep(0.2)
-        except Exception:
-            pass
-        ser.write(cut_paper)
-        ser.flush()
-        ser.close()
-        print("Receipt printed successfully.")
+
+    # Prefer direct USB printer device if available (/dev/usb/lp0), else fallback to serial
+    target_path = PRINTER_PORT
+    try:
+        if os.path.exists(target_path) and target_path.startswith("/dev/usb/lp"):
+            with open(target_path, "wb", buffering=0) as f:
+                f.write(init_printer)
+                f.write(receipt_text.replace("\r\n", "\n").encode("utf-8"))
+                f.write(b"\n\n")
+                f.write(feed_lines)
+                f.write(cut_paper)
+            print("Receipt printed successfully (usblp).")
+            return
+        # Serial fallback
+        import serial  # Imported here to avoid dependency issues on non-RPi dev machines
+        with serial.Serial(PRINTER_PORT, PRINTER_BAUDRATE, timeout=1, write_timeout=2) as ser:
+            ser.write(init_printer)
+            ser.write(receipt_text.replace("\r\n", "\n").encode("utf-8"))
+            ser.write(b"\n\n")
+            ser.write(feed_lines)
+            ser.flush()
+            try:
+                import time as _t
+                _t.sleep(0.2)
+            except Exception:
+                pass
+            ser.write(cut_paper)
+            ser.flush()
+        print("Receipt printed successfully (serial).")
     except Exception as e:  # pragma: no cover
         print(f"Printer error: {e}")
 
