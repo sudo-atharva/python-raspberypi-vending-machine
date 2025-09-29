@@ -38,9 +38,20 @@ Date/Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
 Thank you for your payment!
 """
+        # Ensure ESC/POS expects LF line endings and some feed before cutting
+        feed_lines = b"\x1b\x64\x04"  # Print and feed n lines (n=4)
         ser.write(init_printer)
-        ser.write(receipt_text.encode("utf-8"))
+        ser.write(receipt_text.replace('\r\n', '\n').encode("utf-8"))
+        ser.write(b"\n\n")
+        ser.write(feed_lines)
+        ser.flush()
+        try:
+            import time as _t
+            _t.sleep(0.2)
+        except Exception:
+            pass
         ser.write(cut_paper)
+        ser.flush()
         ser.close()
         print("Receipt printed successfully.")
     except Exception as e:  # pragma: no cover
@@ -85,6 +96,9 @@ class VendingGUI(tk.Tk):
         self.bind("<Alt-F4>", lambda e: "break")
         self.bind("<Escape>", lambda e: "break")
         self.bind("<Control-q>", lambda e: "break")
+        # Toggleable fullscreen for testing
+        self._is_fullscreen = True
+        self.bind("<F11>", self._toggle_fullscreen_event)
         self.current_user: Optional[dict] = None
         self.manual_id_var = tk.StringVar()
         self._qr_photo = None  # Keep reference to PhotoImage
@@ -362,6 +376,15 @@ class VendingGUI(tk.Tk):
         self.clear_screen()
         tk.Label(self, text=message, font=("Arial", 20), fg="red").pack(pady=20)
         tk.Button(self, text="Back", font=("Arial", 16), width=10, height=2, command=self.show_welcome).pack(pady=20)
+
+    def _toggle_fullscreen_event(self, event=None):
+        """Toggle fullscreen mode via F11 for testing without rebooting the Pi."""
+        self._is_fullscreen = not self._is_fullscreen
+        try:
+            self.attributes("-fullscreen", self._is_fullscreen)
+        except Exception:
+            pass
+        return "break"
 
     def clear_screen(self):
         """Clear all widgets from the screen."""
