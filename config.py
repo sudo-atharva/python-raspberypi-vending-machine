@@ -25,7 +25,7 @@ MOTOR_PINS = {
 }
 
 # Printer configuration
-PRINTER_PORT = '/dev/ttyUSB0'  # Adjust based on actual port
+PRINTER_PORT = '/dev/usb/lp0'  # Adjust based on actual port
 PRINTER_BAUDRATE = 9600
 
 # Barcode scanner configuration
