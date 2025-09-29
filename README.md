@@ -5,11 +5,12 @@ A Raspberry Pi-based automated medicine vending machine with touchscreen interfa
 ## Project Overview
 
 This project implements a smart medicine vending machine that allows users to:
-- Authenticate using barcode ID cards
+- Authenticate using barcode ID cards or manually enter ID on the touchscreen
 - Select medicines through a touchscreen interface
 - Get medicine recommendations through a questionnaire
-- Receive printed receipts for transactions
 - Dispense medicines automatically using motor control
+- Complete payment on-screen with a QR code (touchscreen only; QR is not printed on receipt)
+- Receive printed receipts for transactions
 
 ## Hardware Requirements
 
@@ -38,6 +39,7 @@ Required Python packages:
 - RPi.GPIO - For GPIO control
 - pyserial - For barcode scanner and printer communication
 - tkinter - For GUI implementation
+- Pillow - For image display of QR on the touchscreen
 - json - For data storage (included in Python standard library)
 
 ## Installation
@@ -59,10 +61,11 @@ pip install RPi.GPIO pyserial
    - Adjust screen resolution if needed
 
 4. Set up data files:
-   - Ensure all JSON files are present in `medicine_vending_machine/data/`
-   - Update `medicines.json` with your inventory
+   - Ensure all JSON files are present in `data/`
+   - Update `medicines.json` with your inventory (include a numeric price field)
    - Add authorized users to `users.json`
    - Customize `questionnaire.json` if needed
+   - Ensure the static QR image exists at `assets/images/qr.jpg` (this is shown on the payment screen). The receipt will not include the QR image.
 
 ## Project Structure
 
@@ -116,19 +119,22 @@ SCREEN_HEIGHT = 480
 
 1. Start the application:
 ```bash
-cd medicine_vending_machine
 python main.py
 ```
 
 2. System Operation:
-   - Welcome screen appears on startup
-   - User scans their ID card
+   - Welcome screen appears on startup (kiosk mode fullscreen, closing is disabled)
+   - User scans their ID card or taps "Enter ID Manually" to enter via on-screen keypad
    - System validates user credentials
    - User can:
      - Select medicine directly from catalog
      - Use questionnaire for recommendations
    - Machine dispenses selected medicine
-   - Receipt is printed automatically
+   - Payment screen shows total amount and displays the QR image from `assets/images/qr.jpg`
+   - After tapping "Paid":
+     - A CSV entry is appended to `data/payments.csv` with id, medicine, amount, date, time
+     - A thermal receipt is printed (without QR image)
+   - Thank you screen is shown
 
 ## Data Management
 
@@ -195,9 +201,10 @@ Add/edit users in `users.json`:
 
 1. Scanner Issues:
    - Verify USB connection
-   - Check port configuration
+   - Check port configuration (SCANNER_PORT) and baudrate (SCANNER_BAUDRATE)
    - Clean scanner surface
    - Test with known working barcodes
+   - Use the included diagnostic: `python tools/test_scanner_gm812l.py --port /dev/ttyACM0 --baud 9600`
 
 2. Printer Problems:
    - Check paper supply
@@ -210,6 +217,10 @@ Add/edit users in `users.json`:
    - Check power supply
    - Test individual motors
    - Verify pin configurations
+
+4. Kiosk Mode / Lockdown:
+   - The app runs in fullscreen; window close and common quit keybindings are disabled.
+   - To exit during development, modify gui.py to remove the kiosk bindings or run in a regular window.
 
 4. Display Problems:
    - Check resolution settings
