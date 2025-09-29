@@ -15,9 +15,9 @@ This project implements a smart medicine vending machine that allows users to:
 
 1. Raspberry Pi (3 or 4 recommended)
 2. Touchscreen Display (800x480 resolution)
-3. GM812L Barcode Scanner (USB)
-4. Thermal Receipt Printer (Serial/USB)
-5. Stepper Motors for dispensing (one per slot)
+3. GM812L Barcode Scanner (serial)
+4. Thermal Receipt Printer (USB)
+5. DC Motors for dispensing connected to l293d motor driver. two motor for each l293d motor driver with forward/reverse funtionality
 6. GPIO connections for motor control
 7. Power supply unit
 8. Medicine storage compartments/slots
