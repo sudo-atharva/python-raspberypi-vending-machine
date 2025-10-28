@@ -13,15 +13,15 @@ QUESTIONNAIRE_FILE = os.path.join(DATA_DIR, 'questionnaire.json')
 # Motor GPIO pins (BCM mode)
 # Each slot has forward and reverse pins
 MOTOR_PINS = {
-    1: {'forward': 17, 'reverse': 18},
-    2: {'forward': 19, 'reverse': 20},
-    3: {'forward': 21, 'reverse': 22},
-    4: {'forward': 23, 'reverse': 24},
-    5: {'forward': 25, 'reverse': 26},
-    6: {'forward': 27, 'reverse': 28},
-    7: {'forward': 29, 'reverse': 30},
-    8: {'forward': 31, 'reverse': 32},
-    9: {'forward': 33, 'reverse': 34},
+    1: {'forward': 17, 'reverse': 18},  # Pin 11, Pin 12
+    2: {'forward': 27, 'reverse': 22},  # Pin 13, Pin 15
+    3: {'forward': 23, 'reverse': 24},  # Pin 16, Pin 18
+    4: {'forward': 10, 'reverse': 9},   # Pin 19, Pin 21
+    5: {'forward': 25, 'reverse': 11},  # Pin 22, Pin 23
+    6: {'forward': 8, 'reverse': 7},    # Pin 24, Pin 26
+    7: {'forward': 5, 'reverse': 6},    # Pin 29, Pin 31
+    8: {'forward': 12, 'reverse': 13},  # Pin 32, Pin 33
+    9: {'forward': 16, 'reverse': 26},  # Pin 36, Pin 37
 }
 
 # Printer configuration

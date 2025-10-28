@@ -1,6 +1,5 @@
 import os
 import csv
-import glob
 import tkinter as tk
 from datetime import datetime
 from typing import Optional
@@ -20,35 +19,6 @@ from motor_control import dispense
 # Existing printer module prints a basic receipt; we provide a local version that also includes amount
 # without changing other files.
 
-# Helpers to resolve printer configuration
-
-def _resolve_printer_port() -> str:
-    # Allow environment override first
-    env_port = os.environ.get("PRINTER_PORT")
-    if env_port:
-        return env_port
-    # If config specifies a concrete path and not 'auto', use it
-    if PRINTER_PORT and str(PRINTER_PORT).lower() != 'auto':
-        return PRINTER_PORT
-    # Auto-detect devices, prefer usblp (kernel usblp driver) then USB serial
-    for pattern in ("/dev/usb/lp*", "/dev/ttyUSB*", "/dev/ttyACM*"):
-        candidates = sorted(glob.glob(pattern))
-        if candidates:
-            return candidates[0]
-    # Fallback to config
-    return PRINTER_PORT
-
-
-def _resolve_baudrate() -> int:
-    env_baud = os.environ.get("PRINTER_BAUDRATE")
-    if env_baud:
-        try:
-            return int(env_baud)
-        except Exception:
-            pass
-    return int(PRINTER_BAUDRATE) if isinstance(PRINTER_BAUDRATE, (int, str)) else 9600
-
-
 def print_order_receipt(user_id: str, user_name: str, medicine_name: str, slot_id: int, amount: float) -> None:
     init_printer = b"\x1b\x40"  # Initialize printer
     feed_lines = b"\x1b\x64\x04"  # Print and feed n lines (n=4)
@@ -66,22 +36,21 @@ Date/Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 Thank you for your payment!
 """
 
-    target_path = _resolve_printer_port()
+    # Prefer direct USB printer device if available (/dev/usb/lp0), else fallback to serial
+    target_path = PRINTER_PORT
     try:
-        # Direct USB printer path via usblp
-        if target_path and target_path.startswith("/dev/usb/lp") and os.path.exists(target_path):
+        if os.path.exists(target_path) and target_path.startswith("/dev/usb/lp"):
             with open(target_path, "wb", buffering=0) as f:
                 f.write(init_printer)
                 f.write(receipt_text.replace("\r\n", "\n").encode("utf-8"))
                 f.write(b"\n\n")
                 f.write(feed_lines)
                 f.write(cut_paper)
-            print(f"Receipt printed (usblp: {target_path}).")
+            print("Receipt printed successfully (usblp).")
             return
         # Serial fallback
         import serial  # Imported here to avoid dependency issues on non-RPi dev machines
-        baud = _resolve_baudrate()
-        with serial.Serial(target_path, baud, timeout=1, write_timeout=2) as ser:
+        with serial.Serial(PRINTER_PORT, PRINTER_BAUDRATE, timeout=1, write_timeout=2) as ser:
             ser.write(init_printer)
             ser.write(receipt_text.replace("\r\n", "\n").encode("utf-8"))
             ser.write(b"\n\n")
@@ -94,7 +63,7 @@ Thank you for your payment!
                 pass
             ser.write(cut_paper)
             ser.flush()
-        print(f"Receipt printed (serial: {target_path} @ {baud}).")
+        print("Receipt printed successfully (serial).")
     except Exception as e:  # pragma: no cover
         print(f"Printer error: {e}")
 
@@ -345,12 +314,23 @@ class VendingGUI(tk.Tk):
 
         # Show QR from assets (static image)
         qr_path = os.path.join(os.path.dirname(__file__), "assets", "images", "qr.jpeg")
+        print(f"Loading QR image from: {qr_path}")
 
         try:
+            if not os.path.exists(qr_path):
+                print(f"Error: QR image file not found at {qr_path}")
+                raise FileNotFoundError("QR image file not found")
+            
             img = Image.open(qr_path)
+            # Resize image to a reasonable size if needed
+            img = img.resize((300, 300), Image.Resampling.LANCZOS)
             self._qr_photo = ImageTk.PhotoImage(img)
-            tk.Label(self, image=self._qr_photo).pack(pady=10)
-        except Exception:
+            label = tk.Label(self, image=self._qr_photo)
+            label.image = self._qr_photo  # Keep an extra reference!
+            label.pack(pady=10)
+            print("QR image loaded successfully")
+        except Exception as e:
+            print(f"Error loading QR image: {str(e)}")
             # In case image loading fails, show placeholder text
             tk.Label(self, text="[QR IMAGE]", font=("Arial", 18)).pack(pady=10)
 
