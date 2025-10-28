@@ -3,8 +3,19 @@ import csv
 import tkinter as tk
 from datetime import datetime
 from typing import Optional
+import qrcode
+from PIL import Image, ImageTk, ImageDraw, ImageFont
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
+from ttkbootstrap.scrolled import ScrolledFrame
 
-from PIL import Image, ImageTk, ImageDraw
+# Set modern theme colors
+PRIMARY = "#4a6fa5"
+SECONDARY = "#6c757d"
+SUCCESS = "#28a745"
+DANGER = "#dc3545"
+LIGHT = "#f8f9fa"
+DARK = "#343a40"
 
 from config import SCREEN_WIDTH, SCREEN_HEIGHT, PRINTER_PORT, PRINTER_BAUDRATE
 from database import (
@@ -92,54 +103,82 @@ def generate_qr_image(data: str, out_path: str, size: int = 240) -> str:
         return out_path
 
 
-class VendingGUI(tk.Tk):
+class VendingGUI(ttk.Window):
     def __init__(self):
-        super().__init__()
+        super().__init__(themename="flatly")
         self.title("Medicine Vending Machine")
-        self.geometry(f"{SCREEN_WIDTH}x{SCREEN_HEIGHT}")
+        self.geometry(f"{SCREEN_WIDTH}x{SCREEN_HEIGHT}+0+0")
+        
+        # Configure style
+        self.style = ttk.Style()
+        self.style.configure('TButton', font=('Helvetica', 14))
+        self.style.configure('Title.TLabel', font=('Helvetica', 28, 'bold'))
+        self.style.configure('Subtitle.TLabel', font=('Helvetica', 16))
+        self.style.configure('Price.TLabel', font=('Helvetica', 20, 'bold'), foreground=PRIMARY)
+        
         # Kiosk mode: fullscreen and prevent closing
         try:
             self.attributes("-fullscreen", True)
         except Exception:
             pass
+            
         self.protocol("WM_DELETE_WINDOW", lambda: None)
         self.bind("<Alt-F4>", lambda e: "break")
         self.bind("<Escape>", lambda e: "break")
         self.bind("<Control-q>", lambda e: "break")
+        
         # Toggleable fullscreen for testing
         self._is_fullscreen = True
         self.bind("<F11>", self._toggle_fullscreen_event)
+        
         self.current_user: Optional[dict] = None
         self.manual_id_var = tk.StringVar()
-        self._qr_photo = None  # Keep reference to PhotoImage
+        self._qr_photo = None
         self.pending_medicine: Optional[dict] = None
+        
+        # Create a container frame for all screens
+        self.container = ttk.Frame(self)
+        self.container.pack(fill=BOTH, expand=True)
+        
         self.show_welcome()
 
     def show_welcome(self):
         """Display welcome screen with options to scan or enter ID manually."""
         self.clear_screen()
-        tk.Label(self, text="Welcome to Medicine Vending Machine", font=("Arial", 24)).pack(pady=20)
-        tk.Label(self, text="Please scan your barcode or enter your ID", font=("Arial", 18)).pack(pady=20)
-
-        btn_frame = tk.Frame(self)
-        btn_frame.pack(pady=10)
-
-        tk.Button(
+        
+        # Header
+        header = ttk.Frame(self.container, padding=20)
+        header.pack(fill=X, pady=(40, 20))
+        ttk.Label(header, text="Welcome to", font=('Helvetica', 24), bootstyle=SECONDARY).pack()
+        ttk.Label(header, text="Medicine Vending Machine", style='Title.TLabel', bootstyle=PRIMARY).pack()
+        
+        # Main content
+        content = ttk.Frame(self.container, padding=20)
+        content.pack(expand=YES, fill=BOTH)
+        
+        ttk.Label(content, 
+                 text="Please scan your barcode or enter your ID", 
+                 style='Subtitle.TLabel').pack(pady=(0, 30))
+        
+        # Action buttons
+        btn_frame = ttk.Frame(content)
+        btn_frame.pack(pady=20)
+        
+        ttk.Button(
             btn_frame,
             text="Scan Barcode",
-            font=("Arial", 16),
-            width=15,
-            height=2,
+            style='primary.TButton',
+            width=20,
             command=self.show_scan_instructions,
-        ).grid(row=0, column=0, padx=10)
-        tk.Button(
+        ).grid(row=0, column=0, padx=10, pady=10, ipady=10)
+        
+        ttk.Button(
             btn_frame,
             text="Enter ID Manually",
-            font=("Arial", 16),
-            width=18,
-            height=2,
+            style='secondary.TButton',
+            width=20,
             command=self.show_manual_id_entry,
-        ).grid(row=0, column=1, padx=10)
+        ).grid(row=0, column=1, padx=10, pady=10, ipady=10)
 
     def show_scan_instructions(self):
         """Show simple scan instructions screen (placeholder for future auto-scan)."""
@@ -307,51 +346,79 @@ class VendingGUI(tk.Tk):
         """Display amount due and QR image; on Paid, log CSV + print receipt."""
         self.clear_screen()
         price = float(medicine.get("price", 0.0))
-
-        tk.Label(self, text="Payment", font=("Arial", 24)).pack(pady=10)
-        tk.Label(self, text=f"Total Amount: ₹{price:.2f}", font=("Arial", 20)).pack(pady=10)
-        tk.Label(self, text="Please scan the QR code to pay", font=("Arial", 14)).pack(pady=5)
-
-        # Show QR from assets (static image)
-        qr_path = os.path.join(os.path.dirname(__file__), "assets", "images", "qr.jpeg")
-        print(f"Loading QR image from: {qr_path}")
-
+        
+        # Create main container with padding
+        container = ttk.Frame(self.container, padding=30)
+        container.pack(expand=YES, fill=BOTH)
+        
+        # Header
+        ttk.Label(container, text="Payment", style='Title.TLabel').pack(pady=(0, 20))
+        
+        # Amount display
+        amount_frame = ttk.Frame(container)
+        amount_frame.pack(pady=(0, 20))
+        
+        ttk.Label(amount_frame, text="Total Amount:", font=('Helvetica', 18)).pack(side=LEFT, padx=5)
+        ttk.Label(amount_frame, text=f"₹{price:.2f}", style='Price.TLabel').pack(side=LEFT, padx=5)
+        
+        # QR Code Section
+        qr_frame = ttk.LabelFrame(container, text="Scan to Pay", padding=20)
+        qr_frame.pack(pady=20)
+        
+        # Generate QR code dynamically
         try:
-            if not os.path.exists(qr_path):
-                print(f"Error: QR image file not found at {qr_path}")
-                raise FileNotFoundError("QR image file not found")
+            # Create QR code with payment information
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            payment_data = f"upi://pay?pa=your-upi-id@okbizaxis&pn=MedicineVending&am={price}&cu=INR&tn=MedicinePurchase"
+            qr.add_data(payment_data)
+            qr.make(fit=True)
             
-            img = Image.open(qr_path)
-            # Resize image to a reasonable size if needed
-            img = img.resize((300, 300), Image.Resampling.LANCZOS)
-            self._qr_photo = ImageTk.PhotoImage(img)
-            label = tk.Label(self, image=self._qr_photo)
-            label.image = self._qr_photo  # Keep an extra reference!
-            label.pack(pady=10)
-            print("QR image loaded successfully")
+            # Create QR code image
+            qr_img = qr.make_image(fill_color="black", back_color="white")
+            qr_img = qr_img.resize((250, 250), Image.Resampling.LANCZOS)
+            
+            # Convert to PhotoImage for Tkinter
+            self._qr_photo = ImageTk.PhotoImage(qr_img)
+            qr_label = ttk.Label(qr_frame, image=self._qr_photo)
+            qr_label.image = self._qr_photo  # Keep reference
+            qr_label.pack()
+            
+            # Add payment instructions
+            ttk.Label(qr_frame, 
+                     text="Scan the QR code with any UPI app",
+                     font=('Helvetica', 12)).pack(pady=(15, 5))
+            
         except Exception as e:
-            print(f"Error loading QR image: {str(e)}")
-            # In case image loading fails, show placeholder text
-            tk.Label(self, text="[QR IMAGE]", font=("Arial", 18)).pack(pady=10)
-
-        action_frame = tk.Frame(self)
-        action_frame.pack(pady=15)
-        tk.Button(
-            action_frame,
-            text="Paid",
-            font=("Arial", 16),
-            width=12,
-            height=2,
+            print(f"Error generating QR code: {str(e)}")
+            ttk.Label(qr_frame, 
+                     text="[QR Code Generation Error]",
+                     font=('Helvetica', 12),
+                     foreground='red').pack()
+        
+        # Action buttons
+        btn_frame = ttk.Frame(container)
+        btn_frame.pack(pady=20)
+        
+        ttk.Button(
+            btn_frame,
+            text="✓ Payment Done",
+            style='success.TButton',
+            width=15,
             command=lambda: self.on_paid(medicine, price),
-        ).grid(row=0, column=0, padx=10)
-        tk.Button(
-            action_frame,
-            text="Back to Home",
-            font=("Arial", 16),
-            width=14,
-            height=2,
+        ).grid(row=0, column=0, padx=10, ipady=10)
+        
+        ttk.Button(
+            btn_frame,
+            text="← Back to Home",
+            style='outline.TButton',
+            width=15,
             command=self.show_welcome,
-        ).grid(row=0, column=1, padx=10)
+        ).grid(row=0, column=1, padx=10, ipady=10)
 
     def on_paid(self, medicine: dict, price: float):
         """Handle payment confirmation: log CSV, print receipt, log transaction, thank you."""

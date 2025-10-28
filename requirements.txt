@@ -3,6 +3,8 @@ RPi.GPIO>=0.7.1        # For GPIO control on Raspberry Pi
 pyserial>=3.5          # For serial communication with scanner and printer
 python-barcode>=0.14.0 # For barcode generation
 Pillow>=9.0.0         # For image processing
+qrcode>=7.4.2         # For generating QR codes
+ttkbootstrap>=1.10.1   # Modern theme for Tkinter
 
 # GUI dependencies
 tk>=0.1.0             # Tkinter for GUI (usually comes with Python)
