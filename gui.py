@@ -204,9 +204,10 @@ class VendingGUI(ttk.Window):
 
     def show_welcome(self):
         """Display welcome screen with options to scan or enter ID manually."""
-        # Reset user state first
+        # Reset all state variables
         self.current_user = None
         self.pending_medicine = None
+        self.manual_id_var.set("")  # Clear the ID input
         
         # Clear and set up the main container
         self.clear_screen()
@@ -568,19 +569,50 @@ class VendingGUI(ttk.Window):
                         bootstyle='warning'
                     ).grid(row=0, column=0, columnspan=3, pady=50)
                 else:
-                    # Display up to 9 medicines (3x3 grid)
-                    for i, med in enumerate(medicines[:9]):  # Limit to 9 items
+                    # Convert medicines dictionary to list of items with their IDs
+                    medicine_items = [
+                        {**med, 'id': med_id} 
+                        for med_id, med in medicines.items()
+                    ]
+                    
+                    # Sort by slot number and limit to 9 items
+                    medicine_items.sort(key=lambda x: x.get('slot', 999))
+                    displayed_items = medicine_items[:9]
+                    
+                    # Display in grid
+                    for i, med in enumerate(displayed_items):
                         row = i // 3
                         col = i % 3
                         create_med_button(grid_frame, med, row, col)
+                        
+                    # If no medicines were displayed, show message
+                    if not displayed_items:
+                        ttk.Label(
+                            grid_frame,
+                            text="No valid medicines configured.",
+                            font=('Arial', 16),
+                            bootstyle='warning'
+                        ).grid(row=0, column=0, columnspan=3, pady=50)
+                        
             except Exception as e:
                 print(f"Error loading medicines: {e}")
+                # Create an error display frame
+                error_frame = ttk.Frame(grid_frame)
+                error_frame.grid(row=0, column=0, columnspan=3, pady=20)
+                
                 ttk.Label(
-                    grid_frame,
-                    text="Error loading medicine list.",
-                    font=('Arial', 16),
+                    error_frame,
+                    text="Error loading medicine list",
+                    font=('Arial', 16, 'bold'),
                     bootstyle='danger'
-                ).grid(row=0, column=0, columnspan=3, pady=50)
+                ).pack(pady=(0, 10))
+                
+                ttk.Label(
+                    error_frame,
+                    text="Please check medicines.json file",
+                    font=('Arial', 14),
+                    bootstyle='secondary'
+                ).pack()
             
             # Bottom action buttons
             action_frame = ttk.Frame(main_frame)

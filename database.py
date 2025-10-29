@@ -4,11 +4,26 @@ from datetime import datetime
 from config import MEDICINES_FILE, USERS_FILE, QUESTIONNAIRE_FILE, LOG_FILE
 
 def load_json(file_path):
-    """Load data from JSON file."""
-    if os.path.exists(file_path):
-        with open(file_path, 'r') as f:
-            return json.load(f)
-    return {}
+    """Load data from JSON file with error handling."""
+    try:
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+                return data if isinstance(data, dict) else {}
+        else:
+            print(f"Warning: File not found: {file_path}")
+            # Create the directory if it doesn't exist
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            # Create an empty file
+            with open(file_path, 'w') as f:
+                json.dump({}, f)
+            return {}
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in {file_path}: {str(e)}")
+        return {}
+    except Exception as e:
+        print(f"Error loading {file_path}: {str(e)}")
+        return {}
 
 def save_json(file_path, data):
     """Save data to JSON file."""
