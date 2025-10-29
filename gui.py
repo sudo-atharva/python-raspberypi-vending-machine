@@ -107,13 +107,6 @@ class VendingGUI(ttk.Window):
         self.title("Medicine Vending Machine")
         self.geometry(f"{SCREEN_WIDTH}x{SCREEN_HEIGHT}+0+0")
         
-        # Configure style
-        style = ttk.Style()
-        style.configure('TButton', font=('Helvetica', 14))
-        style.configure('Title.TLabel', font=('Helvetica', 28, 'bold'))
-        style.configure('Subtitle.TLabel', font=('Helvetica', 16))
-        style.configure('Price.TLabel', font=('Helvetica', 20, 'bold'), foreground=PRIMARY)
-        
         # Kiosk mode: fullscreen and prevent closing
         try:
             self.attributes("-fullscreen", True)
@@ -135,8 +128,13 @@ class VendingGUI(ttk.Window):
         self.pending_medicine: Optional[dict] = None
         
         # Create a container frame for all screens
-        self.container = ttk.Frame(self)
+        self.container = ttk.Frame(self, padding=20)
         self.container.pack(fill=BOTH, expand=True)
+        
+        # Set default font for all widgets
+        default_font = ('Arial', 14)
+        self.option_add('*TButton*Font', default_font)
+        self.option_add('*TLabel*Font', default_font)
         
         self.show_welcome()
 
@@ -147,8 +145,11 @@ class VendingGUI(ttk.Window):
         # Header
         header = ttk.Frame(self.container, padding=20)
         header.pack(fill=X, pady=(40, 20))
-        ttk.Label(header, text="Welcome to", font=('Helvetica', 24), bootstyle=SECONDARY).pack()
-        ttk.Label(header, text="Medicine Vending Machine", style='Title.TLabel', bootstyle=PRIMARY).pack()
+        
+        title_label = ttk.Label(header, text="Medicine Vending Machine", 
+                              font=('Arial', 28, 'bold'), 
+                              bootstyle='primary')
+        title_label.pack(pady=(0, 20))
         
         # Main content
         content = ttk.Frame(self.container, padding=20)
@@ -156,11 +157,12 @@ class VendingGUI(ttk.Window):
         
         ttk.Label(content, 
                  text="Please scan your barcode or enter your ID", 
-                 style='Subtitle.TLabel').pack(pady=(0, 30))
+                 font=('Arial', 16),
+                 bootstyle='secondary').pack(pady=(0, 30))
         
         # Action buttons
         btn_frame = ttk.Frame(content)
-        btn_frame.pack(pady=20)
+        btn_frame.pack(pady=20, expand=True)
         
         ttk.Button(
             btn_frame,
