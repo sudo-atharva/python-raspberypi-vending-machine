@@ -127,33 +127,54 @@ class VendingGUI(ttk.Window):
         self._qr_photo = None
         self.pending_medicine: Optional[dict] = None
         
-        # Create a container frame for all screens
-        self.container = ttk.Frame(self, padding=20)
-        self.container.pack(fill=BOTH, expand=True)
-        
         # Set default font for all widgets
         default_font = ('Arial', 14)
         self.option_add('*TButton*Font', default_font)
         self.option_add('*TLabel*Font', default_font)
         
+        # Initialize container
+        self._setup_container()
+        
+        # Show welcome screen
         self.show_welcome()
+        
+        # Center the window
+        self.update_idletasks()
+        width = self.winfo_width()
+        height = self.winfo_height()
+        x = (self.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.winfo_screenheight() // 2) - (height // 2)
+        self.geometry(f'{width}x{height}+{x}+{y}')
+        
+    def _setup_container(self):
+        """Setup the main container for the application."""
+        if hasattr(self, 'container'):
+            self.container.destroy()
+        self.container = ttk.Frame(self, padding=20)
+        self.container.pack(fill=BOTH, expand=True)
+
+    def clear_screen(self):
+        """Clear all widgets from the container."""
+        for widget in self.container.winfo_children():
+            widget.destroy()
 
     def show_welcome(self):
         """Display welcome screen with options to scan or enter ID manually."""
         self.clear_screen()
         
         # Header
-        header = ttk.Frame(self.container, padding=20)
+        header = ttk.Frame(self.container)
         header.pack(fill=X, pady=(40, 20))
         
-        title_label = ttk.Label(header, text="Medicine Vending Machine", 
+        title_label = ttk.Label(header, 
+                              text="Medicine Vending Machine", 
                               font=('Arial', 28, 'bold'), 
                               bootstyle='primary')
         title_label.pack(pady=(0, 20))
         
         # Main content
-        content = ttk.Frame(self.container, padding=20)
-        content.pack(expand=YES, fill=BOTH)
+        content = ttk.Frame(self.container)
+        content.pack(expand=True, fill=BOTH, pady=20)
         
         ttk.Label(content, 
                  text="Please scan your barcode or enter your ID", 
