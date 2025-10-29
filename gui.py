@@ -341,7 +341,7 @@ class VendingGUI(ttk.Window):
         self.clear_screen()
         
         # Main container
-        main_frame = ttk.Frame(self, padding=20)
+        main_frame = ttk.Frame(self.container, padding=20)
         main_frame.pack(fill=BOTH, expand=True)
         
         # Title
@@ -450,11 +450,6 @@ class VendingGUI(ttk.Window):
             if not user_id:
                 self.show_error("Please enter a valid ID")
                 return
-                
-            # Ensure we have a valid container
-            if not hasattr(self, 'container') or not self.container.winfo_exists():
-                self.container = ttk.Frame(self)
-                self.container.pack(fill=BOTH, expand=True)
             
             # Clear and show loading state
             self.clear_screen()
@@ -463,41 +458,31 @@ class VendingGUI(ttk.Window):
             loading_frame = ttk.Frame(self.container)
             loading_frame.pack(expand=True, fill=BOTH)
             
-            ttk.Label(
+            loading_label = ttk.Label(
                 loading_frame,
                 text="Verifying ID...",
                 font=('Arial', 18, 'bold'),
                 bootstyle='info'
-            ).pack(pady=50)
+            )
+            loading_label.pack(pady=50)
             
             # Force UI update
             self.update_idletasks()
-            self.update()
             
-            def process_id():
-                try:
-                    # Get user data
-                    user = get_user_by_id(user_id)
-                    if user:
-                        # Store user data and show catalog
-                        self.current_user = user
-                        self.after(100, lambda: self.show_catalog(user))
-                    else:
-                        self.show_error("Invalid ID. Please try again.")
-                        self.after(1000, self.show_manual_id_entry)
-                except Exception as e:
-                    print(f"Error processing ID: {str(e)}")
-                    self.show_error("Error processing request. Please try again.")
-                    self.after(1000, self.show_manual_id_entry)
+            # Get user data directly (no threading needed as it's a fast operation)
+            user = get_user_by_id(user_id)
             
-            # Process ID in a separate thread to keep UI responsive
-            import threading
-            threading.Thread(target=process_id, daemon=True).start()
-            
+            if user:
+                self.current_user = user
+                self.show_catalog(user)
+            else:
+                self.show_error("Invalid ID. Please try again.")
+                self.after(1500, self.show_manual_id_entry)
+                
         except Exception as e:
-            print(f"Fatal error in submit_manual_id: {str(e)}")
-            self.show_error("A critical error occurred. Restarting...")
-            self.after(1000, self.show_welcome)
+            print(f"Error in submit_manual_id: {str(e)}")
+            self.show_error("An error occurred. Please try again.")
+            self.after(1500, self.show_manual_id_entry)
 
     def show_catalog(self, user):
         """Display medicine catalog in a 3x3 grid for touchscreen."""
@@ -645,17 +630,25 @@ class VendingGUI(ttk.Window):
     def show_mcq(self):
         """Display MCQ questionnaire."""
         self.clear_screen()
+        
+        frame = ttk.Frame(self.container)
+        frame.pack(expand=True)
+        
         questionnaire = load_questionnaire()
         if "questions" in questionnaire and questionnaire["questions"]:
             question = questionnaire["questions"][0]
-            tk.Label(self, text=question["text"], font=("Arial", 18)).pack(pady=20)
+            ttk.Label(
+                frame,
+                text=question["text"],
+                font=("Arial", 18),
+                bootstyle="primary"
+            ).pack(pady=20)
+            
             for option in question["options"]:
-                tk.Button(
-                    self,
+                ttk.Button(
+                    frame,
                     text=option["text"],
-                    font=("Arial", 14),
-                    width=20,
-                    height=2,
+                    style="info.TButton",
                     command=lambda o=option: self.recommend_medicine(o["medicine"]),
                 ).pack(pady=5)
         else:
@@ -664,20 +657,32 @@ class VendingGUI(ttk.Window):
     def recommend_medicine(self, med_id):
         """Show recommended medicine for confirmation."""
         self.clear_screen()
+        
+        frame = ttk.Frame(self.container)
+        frame.pack(expand=True)
+        
         medicines = load_medicines()
         if med_id in medicines:
             med = medicines[med_id]
-            tk.Label(self, text=f"Recommended: {med['name']}", font=("Arial", 20)).pack(pady=20)
-            tk.Button(self, text="Confirm", font=("Arial", 16), width=10, height=2, command=lambda: self.select_medicine(med)).pack(
-                pady=10
-            )
-            tk.Button(
-                self,
-                text="Cancel",
-                font=("Arial", 16),
-                width=10,
-                height=2,
-                command=lambda: self.show_catalog(self.current_user),
+            ttk.Label(
+                frame,
+                text=f"Recommended: {med['name']}",
+                font=("Arial", 20),
+                bootstyle="primary"
+            ).pack(pady=20)
+            
+            ttk.Button(
+                frame,
+                text="✓ Confirm",
+                style="success.TButton",
+                command=lambda: self.select_medicine(med)
+            ).pack(pady=10)
+            
+            ttk.Button(
+                frame,
+                text="✗ Cancel",
+                style="danger.TButton",
+                command=lambda: self.show_catalog(self.current_user)
             ).pack(pady=10)
         else:
             self.show_error("Medicine not found")
@@ -890,9 +895,23 @@ class VendingGUI(ttk.Window):
         return "break"
 
     def clear_screen(self):
-        """Clear all widgets from the screen."""
-        for widget in self.winfo_children():
-            widget.destroy()
+        """Clear all widgets from the window."""
+        if not hasattr(self, 'container') or not self.container.winfo_exists():
+            # Recreate container if it doesn't exist
+            self.container = ttk.Frame(self)
+            self.container.pack(fill=BOTH, expand=True)
+            return
+            
+        # Safely destroy all child widgets
+        for widget in self.container.winfo_children():
+            try:
+                if widget.winfo_exists():
+                    widget.destroy()
+            except Exception as e:
+                print(f"Warning: Error destroying widget: {e}")
+        
+        # Force update to ensure widgets are destroyed
+        self.update_idletasks()
 
 
 if __name__ == "__main__":
