@@ -108,11 +108,11 @@ class VendingGUI(ttk.Window):
         self.geometry(f"{SCREEN_WIDTH}x{SCREEN_HEIGHT}+0+0")
         
         # Configure style
-        self.style = ttk.Style()
-        self.style.configure('TButton', font=('Helvetica', 14))
-        self.style.configure('Title.TLabel', font=('Helvetica', 28, 'bold'))
-        self.style.configure('Subtitle.TLabel', font=('Helvetica', 16))
-        self.style.configure('Price.TLabel', font=('Helvetica', 20, 'bold'), foreground=PRIMARY)
+        style = ttk.Style()
+        style.configure('TButton', font=('Helvetica', 14))
+        style.configure('Title.TLabel', font=('Helvetica', 28, 'bold'))
+        style.configure('Subtitle.TLabel', font=('Helvetica', 16))
+        style.configure('Price.TLabel', font=('Helvetica', 20, 'bold'), foreground=PRIMARY)
         
         # Kiosk mode: fullscreen and prevent closing
         try:
