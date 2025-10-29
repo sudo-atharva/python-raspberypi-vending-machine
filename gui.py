@@ -185,50 +185,89 @@ class VendingGUI(ttk.Window):
 
     def show_welcome(self):
         """Display welcome screen with options to scan or enter ID manually."""
-        self.clear_screen()
-        
-        # Main container with padding
-        main_frame = ttk.Frame(self, padding=20)
-        main_frame.pack(fill=BOTH, expand=True)
-        
-        # Header
-        header = ttk.Frame(main_frame)
-        header.pack(fill=X, pady=(40, 20))
-        
-        title_label = ttk.Label(header, 
-                              text="Medicine Vending Machine", 
-                              font=('Arial', 28, 'bold'), 
-                              bootstyle='primary')
-        title_label.pack(pady=(0, 20))
-        
-        # Main content
-        content = ttk.Frame(main_frame)
-        content.pack(expand=True, fill=BOTH, pady=20)
-        
-        ttk.Label(content, 
-                 text="Please scan your barcode or enter your ID", 
-                 font=('Arial', 16),
-                 bootstyle='secondary').pack(pady=(0, 30))
-        
-        # Action buttons
-        btn_frame = ttk.Frame(content)
-        btn_frame.pack(pady=20, expand=True)
-        
-        ttk.Button(
-            btn_frame,
-            text="Scan Barcode",
-            style='primary.TButton',
-            width=20,
-            command=self.show_scan_instructions,
-        ).grid(row=0, column=0, padx=10, pady=10, ipady=10)
-        
-        ttk.Button(
-            btn_frame,
-            text="Enter ID Manually",
-            style='secondary.TButton',
-            width=20,
-            command=self.show_manual_id_entry,
-        ).grid(row=0, column=1, padx=10, pady=10, ipady=10)
+        try:
+            # Reset user state
+            self.current_user = None
+            self.pending_medicine = None
+            
+            self.clear_screen()
+            
+            # Main container with padding
+            main_frame = ttk.Frame(self.container, padding=20)
+            main_frame.pack(fill=BOTH, expand=True)
+            
+            # Header
+            header = ttk.Frame(main_frame)
+            header.pack(fill=X, pady=(20, 10))
+            
+            title_label = ttk.Label(
+                header, 
+                text="Medicine Vending Machine", 
+                font=('Arial', 24, 'bold'), 
+                bootstyle='primary'
+            )
+            title_label.pack(pady=(0, 10))
+            
+            # Welcome message
+            ttk.Label(
+                main_frame,
+                text="Welcome!",
+                font=('Arial', 22, 'bold'),
+                bootstyle='secondary'
+            ).pack(pady=(10, 20))
+            
+            # Instruction
+            ttk.Label(
+                main_frame, 
+                text="Please scan your barcode or enter your ID", 
+                font=('Arial', 16),
+                bootstyle='secondary'
+            ).pack(pady=(0, 30))
+            
+            # Action buttons frame
+            btn_frame = ttk.Frame(main_frame)
+            btn_frame.pack(expand=True, fill=BOTH, pady=10)
+            
+            # Scan button
+            ttk.Button(
+                btn_frame,
+                text="📷 Scan Barcode",
+                style='info.TButton',
+                command=self.show_scan_instructions,
+                padding=15
+            ).pack(pady=10, fill=X)
+            
+            # Manual entry button
+            ttk.Button(
+                btn_frame,
+                text="⌨️ Enter ID Manually",
+                style='secondary.TButton',
+                command=self.show_manual_id_entry,
+                padding=15
+            ).pack(pady=10, fill=X)
+            
+            # Add some space at the bottom
+            ttk.Frame(btn_frame, height=20).pack()
+            
+            # Force UI update
+            self.update_idletasks()
+            
+        except Exception as e:
+            print(f"Error in show_welcome: {str(e)}")
+            # If something goes wrong, try to recover
+            self.clear_screen()
+            ttk.Label(
+                self.container,
+                text="Welcome to Medicine Vending Machine",
+                font=('Arial', 20, 'bold'),
+                bootstyle='primary'
+            ).pack(pady=50)
+            ttk.Button(
+                self.container,
+                text="Start",
+                command=self.show_welcome,
+                style='info.TButton'
+            ).pack(pady=20)
 
     def show_scan_instructions(self):
         """Show simple scan instructions screen (placeholder for future auto-scan)."""
@@ -324,20 +363,40 @@ class VendingGUI(ttk.Window):
         self.manual_id_var.set("")
 
     def submit_manual_id(self):
+        # Get and clean the input
         user_id = self.manual_id_var.get().strip()
+        
+        # Validate input
         if not user_id:
             self.show_error("Please enter a valid ID")
             return
             
+        # Show loading state
+        self.clear_screen()
+        loading_label = ttk.Label(
+            self.container,
+            text="Verifying ID...",
+            font=('Arial', 18, 'bold'),
+            bootstyle='info'
+        )
+        loading_label.pack(pady=50)
+        self.update()  # Force UI update
+        
         try:
+            # Get user data
             user = get_user_by_id(user_id)
             if user:
-                self.show_catalog(user)
+                # Store user data and show catalog
+                self.current_user = user
+                self.after(100, lambda: self.show_catalog(user))
             else:
                 self.show_error("Invalid ID. Please try again.")
+                self.after(1000, self.show_manual_id_entry)
+                
         except Exception as e:
-            print(f"Error fetching user: {e}")
+            print(f"Error in submit_manual_id: {str(e)}")
             self.show_error("Error processing request. Please try again.")
+            self.after(1000, self.show_manual_id_entry)
 
     def show_catalog(self, user):
         """Display medicine catalog in a 3x3 grid for touchscreen."""
@@ -348,9 +407,11 @@ class VendingGUI(ttk.Window):
             frame.columnconfigure(0, weight=1)
             frame.rowconfigure(0, weight=1)
             
+            btn_text = f"{med.get('name', 'Unknown')}\n₹{med.get('price', 0):.2f}"
+            
             btn = ttk.Button(
                 frame,
-                text=f"{med.get('name', 'Unknown')}\n₹{med.get('price', 0):.2f}",
+                text=btn_text,
                 style='TButton',
                 command=lambda m=med: self.select_medicine(m)
             )
@@ -359,50 +420,83 @@ class VendingGUI(ttk.Window):
 
         try:
             self.clear_screen()
-            self.current_user = user
+            
+            # Store user in instance variable if not already set
+            if not hasattr(self, 'current_user') or not self.current_user:
+                self.current_user = user
             
             # Main container with padding
             main_frame = ttk.Frame(self.container, padding=5)
             main_frame.pack(fill=BOTH, expand=True)
             
-            # Header with user info and logout - simplified
+            # Header with user info and logout
             header = ttk.Frame(main_frame)
             header.pack(fill=X, pady=(0, 5))
             
+            # Display user name or ID if name is not available
+            user_display = f"User ID: {self.current_user.get('id', 'N/A')}"
+            if 'name' in self.current_user and self.current_user['name']:
+                user_display = self.current_user['name']
+                
             ttk.Label(
                 header,
-                text=f"Welcome, {user.get('name', 'User')}",
+                text=user_display,
                 font=('Arial', 18, 'bold'),
                 bootstyle='primary'
             ).pack(side=LEFT, fill=X, expand=True)
             
+            # Logout button
+            ttk.Button(
+                header,
+                text="🔒 Logout",
+                style='danger.TButton',
+                command=self.show_welcome
+            ).pack(side=RIGHT, padx=5)
+            
+            # Title
+            ttk.Label(
+                main_frame,
+                text="Select a Medicine",
+                font=('Arial', 20, 'bold'),
+                bootstyle='secondary'
+            ).pack(pady=(0, 10))
+            
             # Medicine grid (3x3)
             grid_frame = ttk.Frame(main_frame)
-            grid_frame.pack(fill=BOTH, expand=True, pady=10)
+            grid_frame.pack(fill=BOTH, expand=True, pady=5)
             
             # Configure grid layout
             for i in range(3):  # 3 rows
-                grid_frame.rowconfigure(i, weight=1)
+                grid_frame.rowconfigure(i, weight=1, uniform='row')
             for i in range(3):  # 3 columns
-                grid_frame.columnconfigure(i, weight=1)
+                grid_frame.columnconfigure(i, weight=1, uniform='col')
             
             # Load and display medicines
-            medicines = load_medicines()
-            if not medicines:
+            try:
+                medicines = load_medicines()
+                if not medicines:
+                    ttk.Label(
+                        grid_frame,
+                        text="No medicines available.",
+                        font=('Arial', 16),
+                        bootstyle='warning'
+                    ).grid(row=0, column=0, columnspan=3, pady=50)
+                else:
+                    # Display up to 9 medicines (3x3 grid)
+                    for i, med in enumerate(medicines[:9]):  # Limit to 9 items
+                        row = i // 3
+                        col = i % 3
+                        create_med_button(grid_frame, med, row, col)
+            except Exception as e:
+                print(f"Error loading medicines: {e}")
                 ttk.Label(
-                    main_frame,
-                    text="No medicines available.",
+                    grid_frame,
+                    text="Error loading medicine list.",
                     font=('Arial', 16),
-                    bootstyle='warning'
-                ).pack(pady=50)
-            else:
-                # Display up to 9 medicines (3x3 grid)
-                for i, med in enumerate(medicines[:9]):  # Limit to 9 items
-                    row = i // 3
-                    col = i % 3
-                    create_med_button(grid_frame, med, row, col)
+                    bootstyle='danger'
+                ).grid(row=0, column=0, columnspan=3, pady=50)
             
-            # Bottom action buttons - larger and more touch-friendly
+            # Bottom action buttons
             action_frame = ttk.Frame(main_frame)
             action_frame.pack(fill=X, pady=(10, 0))
             
@@ -416,19 +510,19 @@ class VendingGUI(ttk.Window):
                 btn = ttk.Button(
                     action_frame,
                     text=text,
-                    style='TButton',
+                    style=f'{style}.TButton',
                     command=cmd
                 )
                 btn.grid(row=0, column=i, padx=5, pady=5, sticky="nsew")
                 action_frame.columnconfigure(i, weight=1)
             
-            # Make sure the layout is updated
+            # Force UI update
             self.update_idletasks()
             
         except Exception as e:
-            print(f"Catalog error: {e}")
+            print(f"Error in show_catalog: {str(e)}")
             self.show_error("Failed to load catalog. Please try again.")
-            self.after(100, self.show_welcome)
+            self.after(1000, self.show_welcome)
 
     def select_medicine(self, medicine):
         """Handle medicine selection and dispense, then go to payment screen."""
