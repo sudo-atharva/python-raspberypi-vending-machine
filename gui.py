@@ -105,7 +105,20 @@ class VendingGUI(ttk.Window):
     def __init__(self):
         super().__init__(themename="flatly")
         self.title("Medicine Vending Machine")
-        self.geometry(f"{SCREEN_WIDTH}x{SCREEN_HEIGHT}+0+0")
+        
+        # Set default font for all widgets first
+        default_font = ('Arial', 14)
+        self.option_add('*TButton*Font', default_font)
+        self.option_add('*TLabel*Font', default_font)
+        
+        # Initialize variables
+        self.current_user = None
+        self.manual_id_var = tk.StringVar()
+        self._qr_photo = None
+        self.pending_medicine = None
+        
+        # Set up the main window
+        self.geometry(f"{SCREEN_WIDTH}x{SCREEN_HEIGHT}")
         
         # Kiosk mode: fullscreen and prevent closing
         try:
@@ -122,48 +135,24 @@ class VendingGUI(ttk.Window):
         self._is_fullscreen = True
         self.bind("<F11>", self._toggle_fullscreen_event)
         
-        self.current_user: Optional[dict] = None
-        self.manual_id_var = tk.StringVar()
-        self._qr_photo = None
-        self.pending_medicine: Optional[dict] = None
-        
-        # Set default font for all widgets
-        default_font = ('Arial', 14)
-        self.option_add('*TButton*Font', default_font)
-        self.option_add('*TLabel*Font', default_font)
-        
-        # Initialize container
-        self._setup_container()
-        
         # Show welcome screen
         self.show_welcome()
-        
-        # Center the window
-        self.update_idletasks()
-        width = self.winfo_width()
-        height = self.winfo_height()
-        x = (self.winfo_screenwidth() // 2) - (width // 2)
-        y = (self.winfo_screenheight() // 2) - (height // 2)
-        self.geometry(f'{width}x{height}+{x}+{y}')
-        
-    def _setup_container(self):
-        """Setup the main container for the application."""
-        if hasattr(self, 'container'):
-            self.container.destroy()
-        self.container = ttk.Frame(self, padding=20)
-        self.container.pack(fill=BOTH, expand=True)
 
     def clear_screen(self):
-        """Clear all widgets from the container."""
-        for widget in self.container.winfo_children():
+        """Clear all widgets from the window."""
+        for widget in self.winfo_children():
             widget.destroy()
 
     def show_welcome(self):
         """Display welcome screen with options to scan or enter ID manually."""
         self.clear_screen()
         
+        # Main container with padding
+        main_frame = ttk.Frame(self, padding=20)
+        main_frame.pack(fill=BOTH, expand=True)
+        
         # Header
-        header = ttk.Frame(self.container)
+        header = ttk.Frame(main_frame)
         header.pack(fill=X, pady=(40, 20))
         
         title_label = ttk.Label(header, 
@@ -173,7 +162,7 @@ class VendingGUI(ttk.Window):
         title_label.pack(pady=(0, 20))
         
         # Main content
-        content = ttk.Frame(self.container)
+        content = ttk.Frame(main_frame)
         content.pack(expand=True, fill=BOTH, pady=20)
         
         ttk.Label(content, 
@@ -211,57 +200,85 @@ class VendingGUI(ttk.Window):
     def show_manual_id_entry(self):
         """Display on-screen keypad for manual ID entry."""
         self.clear_screen()
-        self.manual_id_var.set("")
-
-        tk.Label(self, text="Enter Your ID", font=("Arial", 22)).pack(pady=10)
-
-        entry = tk.Entry(self, textvariable=self.manual_id_var, font=("Arial", 20), justify="center")
+        
+        # Main container
+        main_frame = ttk.Frame(self, padding=20)
+        main_frame.pack(fill=BOTH, expand=True)
+        
+        # Title
+        ttk.Label(main_frame, text="Enter Your ID", font=('Arial', 22, 'bold')).pack(pady=10)
+        
+        # Entry field
+        entry_frame = ttk.Frame(main_frame)
+        entry_frame.pack(pady=10)
+        
+        entry = ttk.Entry(entry_frame, 
+                         textvariable=self.manual_id_var, 
+                         font=('Arial', 20), 
+                         justify="center",
+                         width=15)
         entry.pack(pady=10)
         entry.focus_set()
-
-        keypad = tk.Frame(self)
-        keypad.pack(pady=10)
-
+        
+        # Keypad
+        keypad_frame = ttk.Frame(main_frame)
+        keypad_frame.pack(pady=20)
+        
         buttons = [
-            ("1", 0, 0),
-            ("2", 0, 1),
-            ("3", 0, 2),
-            ("4", 1, 0),
-            ("5", 1, 1),
-            ("6", 1, 2),
-            ("7", 2, 0),
-            ("8", 2, 1),
-            ("9", 2, 2),
-            ("Clear", 3, 0),
-            ("0", 3, 1),
-            ("<-", 3, 2),
+            ("1", 0, 0), ("2", 0, 1), ("3", 0, 2),
+            ("4", 1, 0), ("5", 1, 1), ("6", 1, 2),
+            ("7", 2, 0), ("8", 2, 1), ("9", 2, 2),
+            ("Clear", 3, 0), ("0", 3, 1), ("⌫", 3, 2)
         ]
+        
         for (text, r, c) in buttons:
             if text.isdigit():
                 cmd = lambda t=text: self.append_digit(t)
+                style = 'primary.TButton'
             elif text == "Clear":
                 cmd = self.clear_id
+                style = 'danger.TButton'
             else:  # backspace
                 cmd = self.backspace_id
-            tk.Button(keypad, text=text, font=("Arial", 18), width=6, height=2, command=cmd).grid(
-                row=r, column=c, padx=5, pady=5
+                style = 'warning.TButton'
+                
+            btn = ttk.Button(
+                keypad_frame, 
+                text=text, 
+                style=style,
+                width=6,
+                command=cmd
             )
-
-        action_frame = tk.Frame(self)
-        action_frame.pack(pady=15)
-
-        tk.Button(action_frame, text="Submit", font=("Arial", 16), width=12, height=2, command=self.submit_manual_id).grid(
-            row=0, column=0, padx=10
-        )
-        tk.Button(action_frame, text="Back", font=("Arial", 16), width=12, height=2, command=self.show_welcome).grid(
-            row=0, column=1, padx=10
-        )
+            btn.grid(row=r, column=c, padx=5, pady=5, ipadx=10, ipady=10)
+        
+        # Action buttons
+        btn_frame = ttk.Frame(main_frame)
+        btn_frame.pack(pady=20)
+        
+        ttk.Button(
+            btn_frame,
+            text="Submit",
+            style='success.TButton',
+            width=15,
+            command=self.submit_manual_id
+        ).grid(row=0, column=0, padx=10)
+        
+        ttk.Button(
+            btn_frame,
+            text="Back",
+            style='secondary.TButton',
+            width=15,
+            command=self.show_welcome
+        ).grid(row=0, column=1, padx=10)
 
     def append_digit(self, d):
-        self.manual_id_var.set(self.manual_id_var.get() + d)
+        current = self.manual_id_var.get()
+        self.manual_id_var.set(current + d)
 
     def backspace_id(self):
-        self.manual_id_var.set(self.manual_id_var.get()[:-1])
+        current = self.manual_id_var.get()
+        if current:
+            self.manual_id_var.set(current[:-1])
 
     def clear_id(self):
         self.manual_id_var.set("")
@@ -271,54 +288,99 @@ class VendingGUI(ttk.Window):
         if not user_id:
             self.show_error("Please enter a valid ID")
             return
-        user = get_user_by_id(user_id)
-        if user:
-            self.show_catalog(user)
-        else:
-            self.show_error("Invalid ID")
+            
+        try:
+            user = get_user_by_id(user_id)
+            if user:
+                self.show_catalog(user)
+            else:
+                self.show_error("Invalid ID. Please try again.")
+        except Exception as e:
+            print(f"Error fetching user: {e}")
+            self.show_error("Error processing request. Please try again.")
 
     def show_catalog(self, user):
         """Display medicine catalog."""
         self.current_user = user
         self.clear_screen()
-        tk.Label(self, text=f"Welcome, {user['name']}!", font=("Arial", 20)).pack(pady=10)
-
-        frame = tk.Frame(self)
-        frame.pack()
-
-        medicines = load_medicines()
-        row = 0
-        col = 0
-        for med_id, med in medicines.items():
-            btn = tk.Button(
-                frame,
-                text=med.get("name", str(med_id)),
-                font=("Arial", 16),
-                width=15,
-                height=3,
-                command=lambda m=med: self.select_medicine(m),
-            )
-            btn.grid(row=row, column=col, padx=10, pady=10)
-            col += 1
-            if col == 3:
-                col = 0
-                row += 1
-
-        tk.Button(
-            self,
+        
+        # Main container
+        main_frame = ttk.Frame(self, padding=20)
+        main_frame.pack(fill=BOTH, expand=True)
+        
+        # Header
+        ttk.Label(main_frame, 
+                 text=f"Welcome, {user.get('name', 'User')}!", 
+                 font=('Arial', 20, 'bold'),
+                 bootstyle='primary').pack(pady=(0, 20))
+        
+        # Medicines grid
+        medicines_frame = ttk.Frame(main_frame)
+        medicines_frame.pack(expand=True, fill=BOTH)
+        
+        try:
+            medicines = load_medicines()
+            if not medicines:
+                raise ValueError("No medicines available")
+                
+            row = col = 0
+            max_cols = 3
+            
+            for med_id, med in medicines.items():
+                btn = ttk.Button(
+                    medicines_frame,
+                    text=med.get("name", f"Medicine {med_id}"),
+                    style='primary.TButton',
+                    command=lambda m=med: self.select_medicine(m)
+                )
+                btn.grid(row=row, column=col, padx=10, pady=10, sticky='nsew')
+                medicines_frame.columnconfigure(col, weight=1)
+                
+                col += 1
+                if col >= max_cols:
+                    col = 0
+                    row += 1
+            
+            # Configure row weights for expansion
+            for r in range(row + 1):
+                medicines_frame.rowconfigure(r, weight=1)
+                
+        except Exception as e:
+            print(f"Error loading medicines: {e}")
+            self.show_error("Error loading medicine catalog. Please try again later.")
+            return
+        
+        # Bottom buttons
+        btn_frame = ttk.Frame(main_frame)
+        btn_frame.pack(pady=20)
+        
+        ttk.Button(
+            btn_frame,
             text="I don't know what I need",
-            font=("Arial", 16),
-            width=20,
-            height=2,
-            command=self.show_mcq,
-        ).pack(pady=20)
+            style='info.TButton',
+            command=self.show_mcq
+        ).pack(side=LEFT, padx=5)
+        
+        ttk.Button(
+            btn_frame,
+            text="Back to Home",
+            style='secondary.TButton',
+            command=self.show_welcome
+        ).pack(side=LEFT, padx=5)
 
     def select_medicine(self, medicine):
         """Handle medicine selection and dispense, then go to payment screen."""
-        success = dispense(medicine["slot"])
-        if success:
-            # Store pending medicine for payment
-            self.pending_medicine = medicine
+        try:
+            success = dispense(medicine.get("slot"))
+            if success:
+                # Store pending medicine for payment
+                self.pending_medicine = medicine
+                self.show_payment_screen(medicine)
+            else:
+                self.show_error("Failed to dispense medicine. Please try again.")
+        except Exception as e:
+            print(f"Error dispensing medicine: {e}")
+            self.show_error("An error occurred while processing your request.")
             self.show_payment_screen(medicine)
         else:
             self.show_error("Out of Stock")
