@@ -106,10 +106,15 @@ class VendingGUI(ttk.Window):
         super().__init__(themename="flatly")
         self.title("Medicine Vending Machine")
         
-        # Set default font for all widgets first
-        default_font = ('Arial', 14)
+        # Set default font and styling
+        default_font = ('Arial', 18)  # Increased font size
         self.option_add('*TButton*Font', default_font)
         self.option_add('*TLabel*Font', default_font)
+        
+        # Configure style for larger buttons
+        style = ttk.Style()
+        style.configure('TButton', padding=10)
+        style.configure('Large.TButton', font=('Arial', 20, 'bold'), padding=20)
         
         # Initialize variables
         self.current_user = None
@@ -119,6 +124,10 @@ class VendingGUI(ttk.Window):
         
         # Set up the main window
         self.geometry(f"{SCREEN_WIDTH}x{SCREEN_HEIGHT}")
+        
+        # Main container
+        self.container = ttk.Frame(self, padding=20)
+        self.container.pack(fill=BOTH, expand=True)
         
         # Kiosk mode: fullscreen and prevent closing
         try:
@@ -140,7 +149,7 @@ class VendingGUI(ttk.Window):
 
     def clear_screen(self):
         """Clear all widgets from the window."""
-        for widget in self.winfo_children():
+        for widget in self.container.winfo_children():
             widget.destroy()
 
     def show_welcome(self):
@@ -425,28 +434,48 @@ class VendingGUI(ttk.Window):
         else:
             self.show_error("Medicine not found")
 
-    def show_payment_screen(self, medicine: dict):
-        """Display amount due and QR image; on Paid, log CSV + print receipt."""
+    def show_payment_screen(self, medicine):
+        """Show payment screen with QR code and payment options."""
+        price = medicine.get('price', 0)
         self.clear_screen()
-        price = float(medicine.get("price", 0.0))
         
-        # Create main container with padding
-        container = ttk.Frame(self.container, padding=30)
-        container.pack(expand=YES, fill=BOTH)
+        # Main container with padding
+        container = ttk.Frame(self.container, padding=20)
+        container.pack(fill=BOTH, expand=True)
         
-        # Header
-        ttk.Label(container, text="Payment", style='Title.TLabel').pack(pady=(0, 20))
+        # Title
+        ttk.Label(
+            container, 
+            text="Payment", 
+            font=('Arial', 28, 'bold'),
+            bootstyle='primary'
+        ).pack(pady=(0, 20))
         
-        # Amount display
+        # Amount display with larger font
         amount_frame = ttk.Frame(container)
         amount_frame.pack(pady=(0, 20))
         
-        ttk.Label(amount_frame, text="Total Amount:", font=('Helvetica', 18)).pack(side=LEFT, padx=5)
-        ttk.Label(amount_frame, text=f"₹{price:.2f}", style='Price.TLabel').pack(side=LEFT, padx=5)
+        ttk.Label(
+            amount_frame, 
+            text="Total Amount:", 
+            font=('Arial', 24)
+        ).pack(side=LEFT, padx=10)
         
-        # QR Code Section
-        qr_frame = ttk.LabelFrame(container, text="Payment Options", padding=20)
-        qr_frame.pack(pady=20)
+        ttk.Label(
+            amount_frame, 
+            text=f"₹{price:.2f}", 
+            font=('Arial', 28, 'bold'),
+            bootstyle='success'
+        ).pack(side=LEFT, padx=10)
+        
+        # QR Code Section with larger frame
+        qr_frame = ttk.LabelFrame(
+            container, 
+            text="Payment Options", 
+            padding=30,
+            bootstyle='info'
+        )
+        qr_frame.pack(pady=20, fill=BOTH, expand=True)
         
         # Load static QR code image if it exists, otherwise show message
         qr_path = os.path.join(os.path.dirname(__file__), "static_qr.png")
@@ -455,57 +484,76 @@ class VendingGUI(ttk.Window):
             try:
                 # Load and display the static QR code
                 qr_img = Image.open(qr_path)
-                qr_img = qr_img.resize((250, 250), Image.Resampling.LANCZOS)
+                qr_img = qr_img.resize((300, 300), Image.Resampling.LANCZOS)
                 self._qr_photo = ImageTk.PhotoImage(qr_img)
                 qr_label = ttk.Label(qr_frame, image=self._qr_photo)
                 qr_label.image = self._qr_photo  # Keep reference
-                qr_label.pack()
+                qr_label.pack(pady=20)
                 
-                ttk.Label(qr_frame, 
-                         text="Scan the QR code with any UPI app",
-                         font=('Helvetica', 12)).pack(pady=(15, 5))
+                ttk.Label(
+                    qr_frame, 
+                    text="Scan the QR code with any UPI app",
+                    font=('Arial', 16)
+                ).pack(pady=(15, 5))
                 
             except Exception as e:
                 print(f"Error loading QR code: {str(e)}")
-                ttk.Label(qr_frame, 
-                         text="[QR Code Loading Error]",
-                         font=('Helvetica', 12),
-                         foreground='red').pack()
+                ttk.Label(
+                    qr_frame, 
+                    text="[QR Code Loading Error]",
+                    font=('Arial', 16),
+                    bootstyle='danger'
+                ).pack(pady=20)
         else:
             # If no static QR code found, show payment instructions
-            ttk.Label(qr_frame, 
-                     text="Please make payment to the following UPI ID:",
-                     font=('Helvetica', 14, 'bold')).pack(pady=(10, 5))
-            ttk.Label(qr_frame, 
-                     text="your-upi-id@okbizaxis",
-                     font=('Helvetica', 16, 'bold'),
-                     foreground=PRIMARY).pack(pady=(0, 10))
-            ttk.Label(qr_frame, 
-                     text=f"Amount: ₹{price:.2f}",
-                     font=('Helvetica', 14)).pack(pady=(0, 10))
-            ttk.Label(qr_frame, 
-                     text="After payment, click 'Payment Done' below",
-                     font=('Helvetica', 12, 'italic')).pack(pady=(10, 0))
+            ttk.Label(
+                qr_frame, 
+                text="Please make payment to the following UPI ID:",
+                font=('Arial', 18, 'bold')
+            ).pack(pady=(10, 5))
+            
+            ttk.Label(
+                qr_frame, 
+                text="your-upi-id@okbizaxis",
+                font=('Arial', 20, 'bold'),
+                bootstyle='primary'
+            ).pack(pady=(0, 10))
+            
+            ttk.Label(
+                qr_frame, 
+                text=f"Amount: ₹{price:.2f}",
+                font=('Arial', 18)
+            ).pack(pady=(0, 10))
+            
+            ttk.Label(
+                qr_frame, 
+                text="After payment, click 'Payment Done' below",
+                font=('Arial', 14, 'italic')
+            ).pack(pady=(10, 0))
         
-        # Action buttons
+        # Action buttons - larger and more prominent
         btn_frame = ttk.Frame(container)
-        btn_frame.pack(pady=20)
+        btn_frame.pack(pady=30)
         
+        # Payment Done button
         ttk.Button(
             btn_frame,
             text="✓ Payment Done",
-            style='success.TButton',
-            width=15,
+            style='success.Large.TButton',
+            width=20,
+            padding=20,
             command=lambda: self.on_paid(medicine, price),
-        ).grid(row=0, column=0, padx=10, ipady=10)
+        ).grid(row=0, column=0, padx=20, pady=10, ipadx=20, ipady=10)
         
+        # Back button
         ttk.Button(
             btn_frame,
             text="← Back to Home",
-            style='outline.TButton',
-            width=15,
+            style='secondary.Large.TButton',
+            width=20,
+            padding=20,
             command=self.show_welcome,
-        ).grid(row=0, column=1, padx=10, ipady=10)
+        ).grid(row=0, column=1, padx=20, pady=10, ipadx=20, ipady=10)
 
     def on_paid(self, medicine: dict, price: float):
         """Handle payment confirmation: log CSV, print receipt, log transaction, thank you."""
