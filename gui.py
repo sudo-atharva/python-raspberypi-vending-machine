@@ -154,29 +154,34 @@ class VendingGUI(ttk.Window):
         self.pending_medicine = None
         
         # Set up the main window
-        self.geometry(f"{SCREEN_WIDTH}x{SCREEN_HEIGHT}")
+        self.geometry(f"{SCREEN_WIDTH}x{SCREEN_HEIGHT}+0+0")
         
-        # Main container
-        self.container = ttk.Frame(self, padding=20)
-        self.container.pack(fill=BOTH, expand=True)
+        # Configure window properties
+        self.title("Medicine Vending Machine")
+        self.configure(background='white')
         
-        # Kiosk mode: fullscreen and prevent closing
+        # Create main container
+        self.container = ttk.Frame(self)
+        self.container.pack(fill=BOTH, expand=True, padx=20, pady=20)
+        
+        # Set up fullscreen mode
+        self._is_fullscreen = True
         try:
             self.attributes("-fullscreen", True)
-        except Exception:
-            pass
-            
-        self.protocol("WM_DELETE_WINDOW", lambda: None)
-        self.bind("<Alt-F4>", lambda e: "break")
-        self.bind("<Escape>", lambda e: "break")
-        self.bind("<Control-q>", lambda e: "break")
+            self.attributes("-zoomed", True)  # Fallback for some systems
+        except Exception as e:
+            print(f"Warning: Could not set fullscreen: {e}")
         
-        # Toggleable fullscreen for testing
-        self._is_fullscreen = True
+        # Prevent window closing
+        self.protocol("WM_DELETE_WINDOW", self.safe_exit)
+        self.bind("<Escape>", lambda e: self.safe_exit())
         self.bind("<F11>", self._toggle_fullscreen_event)
         
-        # Show welcome screen
-        self.show_welcome()
+        # Force focus to the window
+        self.focus_force()
+        
+        # Show welcome screen with a small delay to ensure window is ready
+        self.after(100, self.show_welcome)
 
     def clear_screen(self):
         """Clear all widgets from the window."""
@@ -306,9 +311,30 @@ class VendingGUI(ttk.Window):
     def show_scan_instructions(self):
         """Show simple scan instructions screen (placeholder for future auto-scan)."""
         self.clear_screen()
-        tk.Label(self, text="Scan your barcode now", font=("Arial", 22)).pack(pady=20)
-        tk.Label(self, text="After scanning, the system will process your ID.", font=("Arial", 14)).pack(pady=10)
-        tk.Button(self, text="Back", font=("Arial", 16), width=10, height=2, command=self.show_welcome).pack(pady=20)
+        
+        # Create a frame in the container
+        frame = ttk.Frame(self.container)
+        frame.pack(expand=True)
+        
+        ttk.Label(
+            frame,
+            text="Scan your barcode now",
+            font=("Arial", 22),
+            bootstyle="primary"
+        ).pack(pady=20)
+        
+        ttk.Label(
+            frame,
+            text="After scanning, the system will process your ID.",
+            font=("Arial", 14)
+        ).pack(pady=10)
+        
+        ttk.Button(
+            frame,
+            text="Back",
+            command=self.show_welcome,
+            style="secondary.TButton"
+        ).pack(pady=20)
 
     def show_manual_id_entry(self):
         """Display on-screen keypad for manual ID entry."""
@@ -396,41 +422,82 @@ class VendingGUI(ttk.Window):
     def clear_id(self):
         self.manual_id_var.set("")
 
-    def submit_manual_id(self):
-        # Get and clean the input
-        user_id = self.manual_id_var.get().strip()
-        
-        # Validate input
-        if not user_id:
-            self.show_error("Please enter a valid ID")
-            return
-            
-        # Show loading state
-        self.clear_screen()
-        loading_label = ttk.Label(
-            self.container,
-            text="Verifying ID...",
-            font=('Arial', 18, 'bold'),
-            bootstyle='info'
-        )
-        loading_label.pack(pady=50)
-        self.update()  # Force UI update
-        
+    def _toggle_fullscreen_event(self, event=None):
+        """Toggle fullscreen mode with F11 key."""
+        self._is_fullscreen = not self._is_fullscreen
         try:
-            # Get user data
-            user = get_user_by_id(user_id)
-            if user:
-                # Store user data and show catalog
-                self.current_user = user
-                self.after(100, lambda: self.show_catalog(user))
-            else:
-                self.show_error("Invalid ID. Please try again.")
-                self.after(1000, self.show_manual_id_entry)
-                
+            self.attributes("-fullscreen", self._is_fullscreen)
+            if not self._is_fullscreen:
+                self.attributes("-zoomed", False)
         except Exception as e:
-            print(f"Error in submit_manual_id: {str(e)}")
-            self.show_error("Error processing request. Please try again.")
-            self.after(1000, self.show_manual_id_entry)
+            print(f"Error toggling fullscreen: {e}")
+
+    def safe_exit(self, event=None):
+        """Safely exit the application."""
+        try:
+            self.destroy()
+        except:
+            import os
+            os._exit(0)
+
+    def submit_manual_id(self):
+        """Handle manual ID submission with better error handling."""
+        try:
+            # Get and clean the input
+            user_id = self.manual_id_var.get().strip()
+            
+            # Validate input
+            if not user_id:
+                self.show_error("Please enter a valid ID")
+                return
+                
+            # Ensure we have a valid container
+            if not hasattr(self, 'container') or not self.container.winfo_exists():
+                self.container = ttk.Frame(self)
+                self.container.pack(fill=BOTH, expand=True)
+            
+            # Clear and show loading state
+            self.clear_screen()
+            
+            # Create a new frame for loading content
+            loading_frame = ttk.Frame(self.container)
+            loading_frame.pack(expand=True, fill=BOTH)
+            
+            ttk.Label(
+                loading_frame,
+                text="Verifying ID...",
+                font=('Arial', 18, 'bold'),
+                bootstyle='info'
+            ).pack(pady=50)
+            
+            # Force UI update
+            self.update_idletasks()
+            self.update()
+            
+            def process_id():
+                try:
+                    # Get user data
+                    user = get_user_by_id(user_id)
+                    if user:
+                        # Store user data and show catalog
+                        self.current_user = user
+                        self.after(100, lambda: self.show_catalog(user))
+                    else:
+                        self.show_error("Invalid ID. Please try again.")
+                        self.after(1000, self.show_manual_id_entry)
+                except Exception as e:
+                    print(f"Error processing ID: {str(e)}")
+                    self.show_error("Error processing request. Please try again.")
+                    self.after(1000, self.show_manual_id_entry)
+            
+            # Process ID in a separate thread to keep UI responsive
+            import threading
+            threading.Thread(target=process_id, daemon=True).start()
+            
+        except Exception as e:
+            print(f"Fatal error in submit_manual_id: {str(e)}")
+            self.show_error("A critical error occurred. Restarting...")
+            self.after(1000, self.show_welcome)
 
     def show_catalog(self, user):
         """Display medicine catalog in a 3x3 grid for touchscreen."""
@@ -772,14 +839,46 @@ class VendingGUI(ttk.Window):
     def show_thank_you(self):
         """Display thank you screen."""
         self.clear_screen()
-        tk.Label(self, text="Thank you! Please take your medicine.", font=("Arial", 24)).pack(pady=20)
-        tk.Button(self, text="Done", font=("Arial", 16), width=10, height=2, command=self.show_welcome).pack(pady=20)
+        
+        # Create frame in container
+        frame = ttk.Frame(self.container)
+        frame.pack(expand=True)
+        
+        ttk.Label(
+            frame,
+            text="Thank you! Please take your medicine.",
+            font=("Arial", 24),
+            bootstyle="success"
+        ).pack(pady=20)
+        
+        ttk.Button(
+            frame,
+            text="Done",
+            style="primary.TButton",
+            command=self.show_welcome
+        ).pack(pady=20)
 
     def show_error(self, message):
         """Display error message."""
         self.clear_screen()
-        tk.Label(self, text=message, font=("Arial", 20), fg="red").pack(pady=20)
-        tk.Button(self, text="Back", font=("Arial", 16), width=10, height=2, command=self.show_welcome).pack(pady=20)
+        
+        # Create frame in container
+        frame = ttk.Frame(self.container)
+        frame.pack(expand=True)
+        
+        ttk.Label(
+            frame,
+            text=message,
+            font=("Arial", 20),
+            bootstyle="danger"
+        ).pack(pady=20)
+        
+        ttk.Button(
+            frame,
+            text="Back",
+            style="secondary.TButton",
+            command=self.show_welcome
+        ).pack(pady=20)
 
     def _toggle_fullscreen_event(self, event=None):
         """Toggle fullscreen mode via F11 for testing without rebooting the Pi."""
