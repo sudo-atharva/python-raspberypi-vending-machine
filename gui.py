@@ -180,18 +180,38 @@ class VendingGUI(ttk.Window):
 
     def clear_screen(self):
         """Clear all widgets from the window."""
+        if not hasattr(self, 'container') or not self.container.winfo_exists():
+            # Recreate container if it doesn't exist
+            self.container = ttk.Frame(self)
+            self.container.pack(fill=BOTH, expand=True)
+            return
+            
+        # Safely destroy all child widgets
         for widget in self.container.winfo_children():
-            widget.destroy()
+            try:
+                if widget.winfo_exists():
+                    widget.destroy()
+            except Exception as e:
+                print(f"Warning: Error destroying widget: {e}")
+        
+        # Force update to ensure widgets are destroyed
+        self.update_idletasks()
 
     def show_welcome(self):
         """Display welcome screen with options to scan or enter ID manually."""
+        # Reset user state first
+        self.current_user = None
+        self.pending_medicine = None
+        
+        # Clear and set up the main container
+        self.clear_screen()
+        
+        # Ensure we have a valid container
+        if not hasattr(self, 'container') or not self.container.winfo_exists():
+            self.container = ttk.Frame(self)
+            self.container.pack(fill=BOTH, expand=True)
+        
         try:
-            # Reset user state
-            self.current_user = None
-            self.pending_medicine = None
-            
-            self.clear_screen()
-            
             # Main container with padding
             main_frame = ttk.Frame(self.container, padding=20)
             main_frame.pack(fill=BOTH, expand=True)
@@ -249,25 +269,39 @@ class VendingGUI(ttk.Window):
             # Add some space at the bottom
             ttk.Frame(btn_frame, height=20).pack()
             
-            # Force UI update
-            self.update_idletasks()
-            
         except Exception as e:
-            print(f"Error in show_welcome: {str(e)}")
-            # If something goes wrong, try to recover
-            self.clear_screen()
-            ttk.Label(
-                self.container,
-                text="Welcome to Medicine Vending Machine",
-                font=('Arial', 20, 'bold'),
-                bootstyle='primary'
-            ).pack(pady=50)
-            ttk.Button(
-                self.container,
-                text="Start",
-                command=self.show_welcome,
-                style='info.TButton'
-            ).pack(pady=20)
+            print(f"Critical error in show_welcome: {str(e)}")
+            # Last resort recovery
+            try:
+                # Try to completely reset the UI
+                for widget in self.winfo_children():
+                    widget.destroy()
+                
+                # Recreate the main container
+                self.container = ttk.Frame(self)
+                self.container.pack(fill=BOTH, expand=True)
+                
+                # Show minimal recovery UI
+                ttk.Label(
+                    self.container,
+                    text="Welcome to Medicine Vending Machine",
+                    font=('Arial', 20, 'bold'),
+                    bootstyle='primary'
+                ).pack(pady=50)
+                
+                ttk.Button(
+                    self.container,
+                    text="Start",
+                    command=self.show_welcome,
+                    style='info.TButton',
+                    padding=15
+                ).pack(pady=20)
+                
+            except Exception as inner_e:
+                print(f"Fatal error during recovery: {str(inner_e)}")
+                # If we get here, the UI is in an unrecoverable state
+                self.destroy()
+                self.quit()
 
     def show_scan_instructions(self):
         """Show simple scan instructions screen (placeholder for future auto-scan)."""
