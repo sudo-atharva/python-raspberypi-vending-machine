@@ -106,6 +106,14 @@ class VendingGUI(ttk.Window):
         super().__init__(themename="flatly")
         self.title("Medicine Vending Machine")
         
+        # Reduce screen updates
+        self.update_idletasks()
+        self.update()
+        
+        # Enable double buffering for smoother updates
+        self.tk_setPalette(background='white')
+        self.update()
+        
         # Set default font and styling
         default_font = ('Arial', 18)  # Increased font size
         self.option_add('*TButton*Font', default_font)
@@ -494,12 +502,21 @@ class VendingGUI(ttk.Window):
             frame.columnconfigure(0, weight=1)
             frame.rowconfigure(0, weight=1)
             
-            btn_text = f"{med.get('name', 'Unknown')}\n₹{med.get('price', 0):.2f}"
+            stock = med.get('stock', 0)
+            name = med.get('name', 'Unknown')
+            price = med.get('price', 0)
+            
+            if stock <= 0:
+                btn_text = f"{name}\nOut of Stock"
+                style = 'danger.TButton'
+            else:
+                btn_text = f"{name}\n₹{price:.2f}\nStock: {stock}"
+                style = 'primary.TButton'
             
             btn = ttk.Button(
                 frame,
                 text=btn_text,
-                style='TButton',
+                style=style,
                 command=lambda m=med: self.select_medicine(m)
             )
             btn.pack(fill=BOTH, expand=True)
@@ -645,8 +662,22 @@ class VendingGUI(ttk.Window):
     def select_medicine(self, medicine):
         """Handle medicine selection and dispense, then go to payment screen."""
         try:
+            # Check stock first
+            if medicine.get("stock", 0) <= 0:
+                self.show_error("Out of Stock")
+                return
+
+            # Attempt to dispense
             success = dispense(medicine.get("slot"))
             if success:
+                # Reduce stock count
+                from database import load_medicines, save_medicines
+                medicines = load_medicines()
+                med_id = medicine.get('id')
+                if med_id in medicines and medicines[med_id].get('stock', 0) > 0:
+                    medicines[med_id]['stock'] -= 1
+                    save_medicines(medicines)
+                
                 # Store pending medicine for payment
                 self.pending_medicine = medicine
                 self.show_payment_screen(medicine)
@@ -655,9 +686,6 @@ class VendingGUI(ttk.Window):
         except Exception as e:
             print(f"Error dispensing medicine: {e}")
             self.show_error("An error occurred while processing your request.")
-            self.show_payment_screen(medicine)
-        else:
-            self.show_error("Out of Stock")
 
     def show_mcq(self):
         """Display MCQ questionnaire."""
