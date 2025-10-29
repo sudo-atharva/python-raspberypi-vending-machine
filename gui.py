@@ -347,77 +347,115 @@ class VendingGUI(ttk.Window):
 
     def show_manual_id_entry(self):
         """Display on-screen keypad for manual ID entry."""
-        self.clear_screen()
-        
-        # Main container
-        main_frame = ttk.Frame(self.container, padding=20)
-        main_frame.pack(fill=BOTH, expand=True)
-        
-        # Title
-        ttk.Label(main_frame, text="Enter Your ID", font=('Arial', 22, 'bold')).pack(pady=10)
-        
-        # Entry field
-        entry_frame = ttk.Frame(main_frame)
-        entry_frame.pack(pady=10)
-        
-        entry = ttk.Entry(entry_frame, 
-                         textvariable=self.manual_id_var, 
-                         font=('Arial', 20), 
-                         justify="center",
-                         width=15)
-        entry.pack(pady=10)
-        entry.focus_set()
-        
-        # Keypad
-        keypad_frame = ttk.Frame(main_frame)
-        keypad_frame.pack(pady=20)
-        
-        buttons = [
-            ("1", 0, 0), ("2", 0, 1), ("3", 0, 2),
-            ("4", 1, 0), ("5", 1, 1), ("6", 1, 2),
-            ("7", 2, 0), ("8", 2, 1), ("9", 2, 2),
-            ("Clear", 3, 0), ("0", 3, 1), ("⌫", 3, 2)
-        ]
-        
-        for (text, r, c) in buttons:
-            if text.isdigit():
-                cmd = lambda t=text: self.append_digit(t)
-                style = 'primary.TButton'
-            elif text == "Clear":
-                cmd = self.clear_id
-                style = 'danger.TButton'
-            else:  # backspace
-                cmd = self.backspace_id
-                style = 'warning.TButton'
-                
-            btn = ttk.Button(
-                keypad_frame, 
-                text=text, 
-                style=style,
-                width=6,
-                command=cmd
+        try:
+            self.clear_screen()
+            
+            # Configure grid for main container to be more responsive
+            self.container.grid_columnconfigure(0, weight=1)
+            self.container.grid_rowconfigure(0, weight=1)
+            
+            # Main frame with grid layout for better performance
+            main_frame = ttk.Frame(self.container)
+            main_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+            
+            # Configure main frame grid
+            main_frame.grid_columnconfigure(0, weight=1)
+            for i in range(4):  # Title, Entry, Keypad, Buttons
+                main_frame.grid_rowconfigure(i, weight=1)
+            
+            # Title (row 0)
+            ttk.Label(
+                main_frame,
+                text="Enter Your ID",
+                font=('Arial', 22, 'bold')
+            ).grid(row=0, sticky="s", pady=(0, 10))
+            
+            # Entry field (row 1)
+            entry = ttk.Entry(
+                main_frame,
+                textvariable=self.manual_id_var,
+                font=('Arial', 20),
+                justify="center",
+                width=15
             )
-            btn.grid(row=r, column=c, padx=5, pady=5, ipadx=10, ipady=10)
-        
-        # Action buttons
-        btn_frame = ttk.Frame(main_frame)
-        btn_frame.pack(pady=20)
-        
-        ttk.Button(
-            btn_frame,
-            text="Submit",
-            style='success.TButton',
-            width=15,
-            command=self.submit_manual_id
-        ).grid(row=0, column=0, padx=10)
-        
-        ttk.Button(
-            btn_frame,
-            text="Back",
-            style='secondary.TButton',
-            width=15,
-            command=self.show_welcome
-        ).grid(row=0, column=1, padx=10)
+            entry.grid(row=1, sticky="n", pady=10)
+            self.after(100, entry.focus_set)  # Delay focus for better performance
+            
+            # Keypad frame (row 2)
+            keypad_frame = ttk.Frame(main_frame)
+            keypad_frame.grid(row=2, sticky="n", pady=10)
+            
+            # Configure keypad grid
+            for i in range(4):
+                keypad_frame.grid_rowconfigure(i, weight=1)
+            for i in range(3):
+                keypad_frame.grid_columnconfigure(i, weight=1)
+            
+            # Pre-define button styles for better performance
+            button_styles = {
+                'digit': 'primary.TButton',
+                'clear': 'danger.TButton',
+                'back': 'warning.TButton'
+            }
+            
+            # Create buttons with optimized layout
+            buttons = [
+                ("1", 0, 0), ("2", 0, 1), ("3", 0, 2),
+                ("4", 1, 0), ("5", 1, 1), ("6", 1, 2),
+                ("7", 2, 0), ("8", 2, 1), ("9", 2, 2),
+                ("Clear", 3, 0), ("0", 3, 1), ("⌫", 3, 2)
+            ]
+            
+            for text, row, col in buttons:
+                if text.isdigit():
+                    cmd = lambda t=text: self.append_digit(t)
+                    style = button_styles['digit']
+                elif text == "Clear":
+                    cmd = self.clear_id
+                    style = button_styles['clear']
+                else:  # backspace
+                    cmd = self.backspace_id
+                    style = button_styles['back']
+                
+                ttk.Button(
+                    keypad_frame,
+                    text=text,
+                    style=style,
+                    width=6,
+                    command=cmd
+                ).grid(row=row, column=col, padx=5, pady=5, sticky="nsew")
+            
+            # Action buttons (row 3)
+            btn_frame = ttk.Frame(main_frame)
+            btn_frame.grid(row=3, sticky="n", pady=20)
+            
+            btn_frame.grid_columnconfigure(0, weight=1)
+            btn_frame.grid_columnconfigure(1, weight=1)
+            
+            # Submit button
+            ttk.Button(
+                btn_frame,
+                text="Submit",
+                style='success.TButton',
+                width=15,
+                command=self.submit_manual_id
+            ).grid(row=0, column=0, padx=10)
+            
+            # Back button
+            ttk.Button(
+                btn_frame,
+                text="Back",
+                style='secondary.TButton',
+                width=15,
+                command=self.show_welcome
+            ).grid(row=0, column=1, padx=10)
+            
+            # Force geometry calculation
+            self.update_idletasks()
+            
+        except Exception as e:
+            print(f"Error in manual ID entry: {e}")
+            self.show_error("Error showing keypad. Please try again.")
 
     def append_digit(self, d):
         current = self.manual_id_var.get()
@@ -667,22 +705,13 @@ class VendingGUI(ttk.Window):
                 self.show_error("Out of Stock")
                 return
 
-            # Attempt to dispense
-            success = dispense(medicine.get("slot"))
-            if success:
-                # Reduce stock count
-                from database import load_medicines, save_medicines
-                medicines = load_medicines()
-                med_id = medicine.get('id')
-                if med_id in medicines and medicines[med_id].get('stock', 0) > 0:
-                    medicines[med_id]['stock'] -= 1
-                    save_medicines(medicines)
-                
-                # Store pending medicine for payment
-                self.pending_medicine = medicine
-                self.show_payment_screen(medicine)
-            else:
-                self.show_error("Failed to dispense medicine. Please try again.")
+            print(f"Current stock before dispense: {medicine.get('stock', 0)}")
+
+            # Store pending medicine for payment
+            self.pending_medicine = medicine
+
+            # Move to payment screen first, only dispense after payment
+            self.show_payment_screen(medicine)
         except Exception as e:
             print(f"Error dispensing medicine: {e}")
             self.show_error("An error occurred while processing your request.")
@@ -756,17 +785,29 @@ class VendingGUI(ttk.Window):
         container = ttk.Frame(self.container, padding=20)
         container.pack(fill=BOTH, expand=True)
         
-        # Title
+        # Title at the top
         ttk.Label(
             container, 
             text="Payment", 
             font=('Arial', 28, 'bold'),
             bootstyle='primary'
         ).pack(pady=(0, 20))
+
+        # Create horizontal layout
+        content_frame = ttk.Frame(container)
+        content_frame.pack(fill=BOTH, expand=True)
         
-        # Amount display with larger font
-        amount_frame = ttk.Frame(container)
-        amount_frame.pack(pady=(0, 20))
+        # Left side - QR Code
+        qr_frame = ttk.Frame(content_frame, padding=20)
+        qr_frame.pack(side=LEFT, fill=BOTH, expand=True)
+        
+        # Right side - Payment info and buttons
+        info_frame = ttk.Frame(content_frame, padding=20)
+        info_frame.pack(side=RIGHT, fill=BOTH, expand=True)
+        
+        # Amount display in info frame
+        amount_frame = ttk.Frame(info_frame)
+        amount_frame.pack(fill=X, pady=(0, 20))
         
         ttk.Label(
             amount_frame, 
@@ -781,113 +822,142 @@ class VendingGUI(ttk.Window):
             bootstyle='success'
         ).pack(side=LEFT, padx=10)
         
-        # QR Code Section with larger frame
-        qr_frame = ttk.LabelFrame(
-            container, 
-            text="Payment Options", 
-            padding=30,
-            bootstyle='info'
-        )
-        qr_frame.pack(pady=20, fill=BOTH, expand=True)
+        # Load QR code image
+        qr_path = os.path.join(os.path.dirname(__file__), "assets", "images", "qr.jpeg")
         
-        # Load static QR code image if it exists, otherwise show message
-        qr_path = os.path.join(os.path.dirname(__file__), "static_qr.png")
-        
-        if os.path.exists(qr_path):
-            try:
-                # Load and display the static QR code
+        try:
+            # QR Code Section (Left Side)
+            qr_label_frame = ttk.LabelFrame(
+                qr_frame,
+                text="Scan QR Code",
+                padding=10,
+                bootstyle='info'
+            )
+            qr_label_frame.pack(fill=BOTH, expand=True)
+            
+            if os.path.exists(qr_path):
+                # Load and display the QR code
                 qr_img = Image.open(qr_path)
-                qr_img = qr_img.resize((300, 300), Image.Resampling.LANCZOS)
+                # Make QR code larger
+                qr_img = qr_img.resize((400, 400), Image.Resampling.LANCZOS)
                 self._qr_photo = ImageTk.PhotoImage(qr_img)
-                qr_label = ttk.Label(qr_frame, image=self._qr_photo)
+                qr_label = ttk.Label(qr_label_frame, image=self._qr_photo)
                 qr_label.image = self._qr_photo  # Keep reference
-                qr_label.pack(pady=20)
-                
+                qr_label.pack(pady=20, padx=20)
+            else:
                 ttk.Label(
-                    qr_frame, 
-                    text="Scan the QR code with any UPI app",
-                    font=('Arial', 16)
-                ).pack(pady=(15, 5))
-                
-            except Exception as e:
-                print(f"Error loading QR code: {str(e)}")
-                ttk.Label(
-                    qr_frame, 
-                    text="[QR Code Loading Error]",
+                    qr_label_frame,
+                    text="QR Code Not Found",
                     font=('Arial', 16),
                     bootstyle='danger'
                 ).pack(pady=20)
-        else:
-            # If no static QR code found, show payment instructions
+                print(f"QR image not found at: {qr_path}")
+            
+            # Payment Instructions (Right Side)
+            instructions_frame = ttk.LabelFrame(
+                info_frame,
+                text="Payment Instructions",
+                padding=20,
+                bootstyle='info'
+            )
+            instructions_frame.pack(fill=X, pady=20)
+            
+            # Instructions
             ttk.Label(
-                qr_frame, 
-                text="Please make payment to the following UPI ID:",
-                font=('Arial', 18, 'bold')
-            ).pack(pady=(10, 5))
+                instructions_frame,
+                text="1. Open any UPI app",
+                font=('Arial', 16)
+            ).pack(anchor='w', pady=5)
             
             ttk.Label(
-                qr_frame, 
-                text="your-upi-id@okbizaxis",
-                font=('Arial', 20, 'bold'),
-                bootstyle='primary'
-            ).pack(pady=(0, 10))
+                instructions_frame,
+                text="2. Scan the QR code",
+                font=('Arial', 16)
+            ).pack(anchor='w', pady=5)
             
             ttk.Label(
-                qr_frame, 
-                text=f"Amount: ₹{price:.2f}",
-                font=('Arial', 18)
-            ).pack(pady=(0, 10))
+                instructions_frame,
+                text=f"3. Pay ₹{price:.2f}",
+                font=('Arial', 16)
+            ).pack(anchor='w', pady=5)
             
             ttk.Label(
-                qr_frame, 
-                text="After payment, click 'Payment Done' below",
-                font=('Arial', 14, 'italic')
-            ).pack(pady=(10, 0))
-        
-        # Action buttons - larger and more prominent
-        btn_frame = ttk.Frame(container)
-        btn_frame.pack(pady=30)
-        
-        # Payment Done button
-        ttk.Button(
-            btn_frame,
-            text="✓ Payment Done",
-            style='success.Large.TButton',
-            width=20,
-            padding=20,
-            command=lambda: self.on_paid(medicine, price),
-        ).grid(row=0, column=0, padx=20, pady=10, ipadx=20, ipady=10)
-        
-        # Back button
-        ttk.Button(
-            btn_frame,
-            text="← Back to Home",
-            style='secondary.Large.TButton',
-            width=20,
-            padding=20,
-            command=self.show_welcome,
-        ).grid(row=0, column=1, padx=20, pady=10, ipadx=20, ipady=10)
+                instructions_frame,
+                text="4. Click 'Payment Done' below",
+                font=('Arial', 16)
+            ).pack(anchor='w', pady=5)
+            
+            # Action buttons in info frame
+            btn_frame = ttk.Frame(info_frame)
+            btn_frame.pack(fill=X, pady=(30, 0))
+            
+            # Payment Done button
+            ttk.Button(
+                btn_frame,
+                text="✓ Payment Done",
+                style='success.TButton',
+                command=lambda: self.on_paid(medicine, price),
+            ).pack(fill=X, pady=(0, 10))
+            
+            # Back button
+            ttk.Button(
+                btn_frame,
+                text="← Back",
+                style='secondary.TButton',
+                command=self.show_welcome,
+            ).pack(fill=X)
+            
+        except Exception as e:
+            print(f"Error in payment screen: {str(e)}")
+            self.show_error("Error displaying payment screen. Please try again.")
 
     def on_paid(self, medicine: dict, price: float):
-        """Handle payment confirmation: log CSV, print receipt, log transaction, thank you."""
-        # Log CSV
-        self.log_payment_csv(
-            user_id=str(self.current_user["id"]),
-            medicine_name=str(medicine.get("name", "")),
-            amount=price,
-            dt=datetime.now(),
-        )
-        # Print receipt with amount
-        print_order_receipt(
-            user_id=str(self.current_user["id"]),
-            user_name=str(self.current_user.get("name", "")),
-            medicine_name=str(medicine.get("name", "")),
-            slot_id=int(medicine.get("slot", 0)),
-            amount=price,
-        )
-        # Log standard transaction as well
-        log_transaction(self.current_user["id"], medicine.get("name", ""), medicine.get("slot", 0))
-        self.show_thank_you()
+        """Handle payment confirmation: dispense medicine, update stock, log transaction, print receipt."""
+        try:
+            # Attempt to dispense first
+            success = dispense(medicine.get("slot"))
+            if not success:
+                self.show_error("Failed to dispense medicine. Please contact support.")
+                return
+
+            # Update stock after successful dispense
+            from database import load_medicines, save_medicines
+            medicines = load_medicines()
+            med_id = medicine.get('id')
+            
+            print(f"Current stock before update: {medicines[med_id].get('stock', 0) if med_id in medicines else 'N/A'}")
+            
+            if med_id in medicines and medicines[med_id].get('stock', 0) > 0:
+                medicines[med_id]['stock'] -= 1
+                save_medicines(medicines)
+                print(f"Stock updated. New stock: {medicines[med_id].get('stock', 0)}")
+            
+            # Log payment in CSV
+            self.log_payment_csv(
+                user_id=str(self.current_user["id"]),
+                medicine_name=str(medicine.get("name", "")),
+                amount=price,
+                dt=datetime.now(),
+            )
+            
+            # Print receipt with amount
+            print_order_receipt(
+                user_id=str(self.current_user["id"]),
+                user_name=str(self.current_user.get("name", "")),
+                medicine_name=str(medicine.get("name", "")),
+                slot_id=int(medicine.get("slot", 0)),
+                amount=price,
+            )
+            
+            # Log standard transaction
+            log_transaction(self.current_user["id"], medicine.get("name", ""), medicine.get("slot", 0))
+            
+            # Show thank you screen
+            self.show_thank_you()
+            
+        except Exception as e:
+            print(f"Error in payment processing: {e}")
+            self.show_error("Error processing payment. Please try again.")
 
     def log_payment_csv(self, user_id: str, medicine_name: str, amount: float, dt: datetime) -> None:
         data_dir = os.path.join(os.path.dirname(__file__), "data")
