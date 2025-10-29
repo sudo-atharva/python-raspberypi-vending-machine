@@ -111,42 +111,41 @@ class VendingGUI(ttk.Window):
         self.option_add('*TButton*Font', default_font)
         self.option_add('*TLabel*Font', default_font)
         
-        # Configure styles for larger, more touch-friendly buttons
+        # Configure styles for better performance and touch
         style = ttk.Style()
         
-        # Base button style
+        # Base button style - simpler and faster
         style.configure('TButton', 
-                      font=('Arial', 18),
-                      padding=15)
+                      font=('Arial', 16),
+                      padding=10,
+                      relief='raised',
+                      borderwidth=2)
         
-        # Large button style for main actions
-        style.configure('Large.TButton',
-                      font=('Arial', 22, 'bold'),
-                      padding=(40, 25),  # Horizontal, Vertical padding
-                      width=20)  # Minimum width
+        # Button variants with consistent sizing
+        for btn_style in ['TButton', 'info.TButton', 'success.TButton', 'danger.TButton', 'secondary.TButton']:
+            style.configure(btn_style,
+                          font=('Arial', 16),
+                          padding=15,
+                          width=15)  # Fixed width for consistency
         
-        # Success style for confirmation buttons
-        style.configure('success.Large.TButton',
-                      font=('Arial', 22, 'bold'),
-                      padding=(40, 25),
-                      width=20)
-        
-        # Info style for information buttons
-        style.configure('info.Large.TButton',
-                      font=('Arial', 22, 'bold'),
-                      padding=(40, 25),
-                      width=20)
-        
-        # Danger style for logout/delete actions
-        style.configure('danger.Large.TButton',
-                      font=('Arial', 20, 'bold'),
-                      padding=(30, 20),
-                      width=15)
-        
-        # Make buttons more prominent on hover
+        # Hover effects for better feedback
         style.map('TButton',
                  foreground=[('active', 'white')],
-                 background=[('active', '!disabled', 'gray70')])
+                 background=[('active', '!disabled', '#4a7abc')],
+                 relief=[('pressed', 'sunken'), ('!pressed', 'raised')])
+        
+        # Specific style for large buttons
+        style.configure('Large.TButton',
+                      font=('Arial', 20, 'bold'),
+                      padding=20,
+                      width=20)
+        
+        # Disable animation for better performance
+        style.configure('.',
+                      relief='flat',
+                      borderwidth=0,
+                      focusthickness=3,
+                      focuscolor='none')
         
         # Initialize variables
         self.current_user = None
@@ -342,43 +341,52 @@ class VendingGUI(ttk.Window):
 
     def show_catalog(self, user):
         """Display medicine catalog with available medicines."""
+        def create_med_button(parent, med):
+            """Helper function to create a medicine button."""
+            btn = ttk.Button(
+                parent,
+                text=f"{med.get('name', 'Unknown')}\n₹{med.get('price', 0):.2f}",
+                style='info.Large.TButton',
+                command=lambda m=med: self.select_medicine(m)
+            )
+            return btn
+
         try:
             self.clear_screen()
             self.current_user = user
             
             # Main container with padding
-            main_frame = ttk.Frame(self.container, padding=20)
+            main_frame = ttk.Frame(self.container, padding=10)
             main_frame.pack(fill=BOTH, expand=True)
             
             # Header with user info and logout
             header = ttk.Frame(main_frame)
-            header.pack(fill=X, pady=(0, 20))
+            header.pack(fill=X, pady=(0, 10))
             
             # User greeting
             ttk.Label(
                 header,
                 text=f"Welcome, {user.get('name', 'User')}",
-                font=('Arial', 24, 'bold'),
+                font=('Arial', 22, 'bold'),
                 bootstyle='primary'
             ).pack(side=LEFT, fill=X, expand=True)
             
-            # Logout button - larger and more visible
+            # Logout button - simplified
             ttk.Button(
                 header,
-                text=" Logout",
-                style='danger.Large.TButton',
+                text="🔒 Logout",
+                style='danger.TButton',
                 command=self.show_welcome,
-                width=15,
-                padding=15
+                width=10
             ).pack(side=RIGHT, padx=5)
             
             # Title
             ttk.Label(
                 main_frame,
                 text="Select a Medicine",
-                font=('Arial', 24, 'bold'),
+                font=('Arial', 20, 'bold'),
                 bootstyle='secondary'
-            ).pack(pady=(0, 30))
+            ).pack(pady=(0, 15))
             
             # Load medicines
             medicines = load_medicines()
@@ -396,18 +404,17 @@ class VendingGUI(ttk.Window):
             content_frame.pack(fill=BOTH, expand=True)
             
             # Create a canvas with scrollbar
-            canvas = tk.Canvas(content_frame, highlightthickness=0)
+            canvas = tk.Canvas(content_frame, highlightthickness=0, bd=0)
             scrollbar = ttk.Scrollbar(content_frame, orient="vertical", command=canvas.yview)
             scrollable_frame = ttk.Frame(canvas)
             
             # Configure the scrollable frame
             scrollable_frame.bind(
                 "<Configure>",
-                lambda e: canvas.configure(
-                    scrollregion=canvas.bbox("all")
-                )
+                lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
             )
             
+            # Create a window in the canvas to hold the scrollable frame
             canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
             canvas.configure(yscrollcommand=scrollbar.set)
             
@@ -415,70 +422,48 @@ class VendingGUI(ttk.Window):
             canvas.pack(side="left", fill="both", expand=True)
             scrollbar.pack(side="right", fill="y")
             
-            # Create medicine buttons in a grid
-            row = 0
-            col = 0
-            max_cols = 2  # Number of columns in the grid
-            
-            for med in medicines:
-                # Create a frame for each medicine button
-                btn_frame = ttk.Frame(scrollable_frame, padding=10)
-                btn_frame.grid(row=row, column=col, padx=15, pady=15, sticky="nsew")
+            # Create medicine buttons in a grid with better performance
+            max_cols = 2
+            for i, med in enumerate(medicines):
+                row = i // max_cols
+                col = i % max_cols
                 
-                # Make the button larger and more touch-friendly
-                btn = ttk.Button(
-                    btn_frame,
-                    text=f"{med.get('name', 'Unknown')}\n₹{med.get('price', 0):.2f}",
-                    style='info.Large.TButton',
-                    width=25,  # Wider buttons
-                    padding=(40, 25),  # Larger padding for better touch
-                    command=lambda m=med: self.select_medicine(m)
+                btn = create_med_button(scrollable_frame, med)
+                btn.grid(
+                    row=row, 
+                    column=col, 
+                    padx=10, 
+                    pady=10, 
+                    sticky="nsew"
                 )
-                btn.pack(fill=BOTH, expand=True)
-                
-                # Update grid position
-                col += 1
-                if col >= max_cols:
-                    col = 0
-                    row += 1
+                scrollable_frame.columnconfigure(col, weight=1)
             
-            # Configure grid weights to make buttons expand
-            for i in range(max_cols):
-                scrollable_frame.columnconfigure(i, weight=1)
+            # Bottom action buttons
+            action_frame = ttk.Frame(main_frame, padding=(0, 10, 0, 5))
+            action_frame.pack(fill=X, pady=(10, 0))
             
-            # Add some extra space at the bottom
-            ttk.Frame(scrollable_frame, height=30).grid(row=row+1, column=0, columnspan=max_cols)
+            # Action buttons
+            buttons = [
+                ("❓ I don't know what I need", 'info', self.show_mcq),
+                ("🏠 Back to Home", 'secondary', self.show_welcome)
+            ]
             
-            # Bottom action buttons - larger and more prominent
-            action_frame = ttk.Frame(main_frame, padding=(0, 20, 0, 10))
-            action_frame.pack(fill=X, pady=(20, 0))
+            for text, style, cmd in buttons:
+                btn = ttk.Button(
+                    action_frame,
+                    text=text,
+                    style=f'{style}.TButton',
+                    command=cmd
+                )
+                btn.pack(side=LEFT, padx=5, fill=X, expand=True)
             
-            # "I don't know" button
-            ttk.Button(
-                action_frame,
-                text=" I don't know what I need",
-                style='info.Large.TButton',
-                command=self.show_mcq,
-                width=25,
-                padding=(20, 20)
-            ).pack(side=LEFT, padx=10, fill=X, expand=True)
-            
-            # Back to Home button
-            ttk.Button(
-                action_frame,
-                text=" Back to Home",
-                style='secondary.Large.TButton',
-                command=self.show_welcome,
-                width=25,
-                padding=(20, 20)
-            ).pack(side=LEFT, padx=10, fill=X, expand=True)
-            
-            # Make sure the window updates
-            self.update_idletasks()
+            # Configure grid weights for the scrollable frame
+            scrollable_frame.rowconfigure((0, len(medicines)//2 + 1), weight=1)
             
         except Exception as e:
             print(f"Error in show_catalog: {str(e)}")
             self.show_error("Failed to load medicine catalog. Please try again.")
+            self.after(100, self.show_welcome)  # Return to welcome screen on error
 
     def select_medicine(self, medicine):
         """Handle medicine selection and dispense, then go to payment screen."""
