@@ -111,10 +111,42 @@ class VendingGUI(ttk.Window):
         self.option_add('*TButton*Font', default_font)
         self.option_add('*TLabel*Font', default_font)
         
-        # Configure style for larger buttons
+        # Configure styles for larger, more touch-friendly buttons
         style = ttk.Style()
-        style.configure('TButton', padding=10)
-        style.configure('Large.TButton', font=('Arial', 20, 'bold'), padding=20)
+        
+        # Base button style
+        style.configure('TButton', 
+                      font=('Arial', 18),
+                      padding=15)
+        
+        # Large button style for main actions
+        style.configure('Large.TButton',
+                      font=('Arial', 22, 'bold'),
+                      padding=(40, 25),  # Horizontal, Vertical padding
+                      width=20)  # Minimum width
+        
+        # Success style for confirmation buttons
+        style.configure('success.Large.TButton',
+                      font=('Arial', 22, 'bold'),
+                      padding=(40, 25),
+                      width=20)
+        
+        # Info style for information buttons
+        style.configure('info.Large.TButton',
+                      font=('Arial', 22, 'bold'),
+                      padding=(40, 25),
+                      width=20)
+        
+        # Danger style for logout/delete actions
+        style.configure('danger.Large.TButton',
+                      font=('Arial', 20, 'bold'),
+                      padding=(30, 20),
+                      width=15)
+        
+        # Make buttons more prominent on hover
+        style.map('TButton',
+                 foreground=[('active', 'white')],
+                 background=[('active', '!disabled', 'gray70')])
         
         # Initialize variables
         self.current_user = None
@@ -309,73 +341,144 @@ class VendingGUI(ttk.Window):
             self.show_error("Error processing request. Please try again.")
 
     def show_catalog(self, user):
-        """Display medicine catalog."""
-        self.current_user = user
-        self.clear_screen()
-        
-        # Main container
-        main_frame = ttk.Frame(self, padding=20)
-        main_frame.pack(fill=BOTH, expand=True)
-        
-        # Header
-        ttk.Label(main_frame, 
-                 text=f"Welcome, {user.get('name', 'User')}!", 
-                 font=('Arial', 20, 'bold'),
-                 bootstyle='primary').pack(pady=(0, 20))
-        
-        # Medicines grid
-        medicines_frame = ttk.Frame(main_frame)
-        medicines_frame.pack(expand=True, fill=BOTH)
-        
+        """Display medicine catalog with available medicines."""
         try:
+            self.clear_screen()
+            self.current_user = user
+            
+            # Main container with padding
+            main_frame = ttk.Frame(self.container, padding=20)
+            main_frame.pack(fill=BOTH, expand=True)
+            
+            # Header with user info and logout
+            header = ttk.Frame(main_frame)
+            header.pack(fill=X, pady=(0, 20))
+            
+            # User greeting
+            ttk.Label(
+                header,
+                text=f"Welcome, {user.get('name', 'User')}",
+                font=('Arial', 24, 'bold'),
+                bootstyle='primary'
+            ).pack(side=LEFT, fill=X, expand=True)
+            
+            # Logout button - larger and more visible
+            ttk.Button(
+                header,
+                text=" Logout",
+                style='danger.Large.TButton',
+                command=self.show_welcome,
+                width=15,
+                padding=15
+            ).pack(side=RIGHT, padx=5)
+            
+            # Title
+            ttk.Label(
+                main_frame,
+                text="Select a Medicine",
+                font=('Arial', 24, 'bold'),
+                bootstyle='secondary'
+            ).pack(pady=(0, 30))
+            
+            # Load medicines
             medicines = load_medicines()
             if not medicines:
-                raise ValueError("No medicines available")
-                
-            row = col = 0
-            max_cols = 3
+                ttk.Label(
+                    main_frame,
+                    text="No medicines available at this time.",
+                    font=('Arial', 18),
+                    bootstyle='warning'
+                ).pack(pady=50)
+                return
             
-            for med_id, med in medicines.items():
+            # Create a frame for the scrollable content
+            content_frame = ttk.Frame(main_frame)
+            content_frame.pack(fill=BOTH, expand=True)
+            
+            # Create a canvas with scrollbar
+            canvas = tk.Canvas(content_frame, highlightthickness=0)
+            scrollbar = ttk.Scrollbar(content_frame, orient="vertical", command=canvas.yview)
+            scrollable_frame = ttk.Frame(canvas)
+            
+            # Configure the scrollable frame
+            scrollable_frame.bind(
+                "<Configure>",
+                lambda e: canvas.configure(
+                    scrollregion=canvas.bbox("all")
+                )
+            )
+            
+            canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+            canvas.configure(yscrollcommand=scrollbar.set)
+            
+            # Pack the canvas and scrollbar
+            canvas.pack(side="left", fill="both", expand=True)
+            scrollbar.pack(side="right", fill="y")
+            
+            # Create medicine buttons in a grid
+            row = 0
+            col = 0
+            max_cols = 2  # Number of columns in the grid
+            
+            for med in medicines:
+                # Create a frame for each medicine button
+                btn_frame = ttk.Frame(scrollable_frame, padding=10)
+                btn_frame.grid(row=row, column=col, padx=15, pady=15, sticky="nsew")
+                
+                # Make the button larger and more touch-friendly
                 btn = ttk.Button(
-                    medicines_frame,
-                    text=med.get("name", f"Medicine {med_id}"),
-                    style='primary.TButton',
+                    btn_frame,
+                    text=f"{med.get('name', 'Unknown')}\n₹{med.get('price', 0):.2f}",
+                    style='info.Large.TButton',
+                    width=25,  # Wider buttons
+                    padding=(40, 25),  # Larger padding for better touch
                     command=lambda m=med: self.select_medicine(m)
                 )
-                btn.grid(row=row, column=col, padx=10, pady=10, sticky='nsew')
-                medicines_frame.columnconfigure(col, weight=1)
+                btn.pack(fill=BOTH, expand=True)
                 
+                # Update grid position
                 col += 1
                 if col >= max_cols:
                     col = 0
                     row += 1
             
-            # Configure row weights for expansion
-            for r in range(row + 1):
-                medicines_frame.rowconfigure(r, weight=1)
-                
+            # Configure grid weights to make buttons expand
+            for i in range(max_cols):
+                scrollable_frame.columnconfigure(i, weight=1)
+            
+            # Add some extra space at the bottom
+            ttk.Frame(scrollable_frame, height=30).grid(row=row+1, column=0, columnspan=max_cols)
+            
+            # Bottom action buttons - larger and more prominent
+            action_frame = ttk.Frame(main_frame, padding=(0, 20, 0, 10))
+            action_frame.pack(fill=X, pady=(20, 0))
+            
+            # "I don't know" button
+            ttk.Button(
+                action_frame,
+                text=" I don't know what I need",
+                style='info.Large.TButton',
+                command=self.show_mcq,
+                width=25,
+                padding=(20, 20)
+            ).pack(side=LEFT, padx=10, fill=X, expand=True)
+            
+            # Back to Home button
+            ttk.Button(
+                action_frame,
+                text=" Back to Home",
+                style='secondary.Large.TButton',
+                command=self.show_welcome,
+                width=25,
+                padding=(20, 20)
+            ).pack(side=LEFT, padx=10, fill=X, expand=True)
+            
+            # Make sure the window updates
+            self.update_idletasks()
+            
         except Exception as e:
-            print(f"Error loading medicines: {e}")
-            self.show_error("Error loading medicine catalog. Please try again later.")
-            return
-        
-        # Bottom buttons
-        btn_frame = ttk.Frame(main_frame)
-        btn_frame.pack(pady=20)
-        
-        ttk.Button(
-            btn_frame,
-            text="I don't know what I need",
-            style='info.TButton',
-            command=self.show_mcq
-        ).pack(side=LEFT, padx=5)
-        
-        ttk.Button(
-            btn_frame,
-            text="Back to Home",
-            style='secondary.TButton',
-            command=self.show_welcome
-        ).pack(side=LEFT, padx=5)
+            print(f"Error in show_catalog: {str(e)}")
+            self.show_error("Failed to load medicine catalog. Please try again.")
 
     def select_medicine(self, medicine):
         """Handle medicine selection and dispense, then go to payment screen."""
