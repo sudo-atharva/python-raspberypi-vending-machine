@@ -3,11 +3,9 @@ import csv
 import tkinter as tk
 from datetime import datetime
 from typing import Optional
-import qrcode
-from PIL import Image, ImageTk, ImageDraw, ImageFont
+from PIL import Image, ImageTk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-from ttkbootstrap.scrolled import ScrolledFrame
 
 # Set modern theme colors
 PRIMARY = "#4a6fa5"
@@ -362,43 +360,47 @@ class VendingGUI(ttk.Window):
         ttk.Label(amount_frame, text=f"₹{price:.2f}", style='Price.TLabel').pack(side=LEFT, padx=5)
         
         # QR Code Section
-        qr_frame = ttk.LabelFrame(container, text="Scan to Pay", padding=20)
+        qr_frame = ttk.LabelFrame(container, text="Payment Options", padding=20)
         qr_frame.pack(pady=20)
         
-        # Generate QR code dynamically
-        try:
-            # Create QR code with payment information
-            qr = qrcode.QRCode(
-                version=1,
-                error_correction=qrcode.constants.ERROR_CORRECT_L,
-                box_size=10,
-                border=4,
-            )
-            payment_data = f"upi://pay?pa=your-upi-id@okbizaxis&pn=MedicineVending&am={price}&cu=INR&tn=MedicinePurchase"
-            qr.add_data(payment_data)
-            qr.make(fit=True)
-            
-            # Create QR code image
-            qr_img = qr.make_image(fill_color="black", back_color="white")
-            qr_img = qr_img.resize((250, 250), Image.Resampling.LANCZOS)
-            
-            # Convert to PhotoImage for Tkinter
-            self._qr_photo = ImageTk.PhotoImage(qr_img)
-            qr_label = ttk.Label(qr_frame, image=self._qr_photo)
-            qr_label.image = self._qr_photo  # Keep reference
-            qr_label.pack()
-            
-            # Add payment instructions
+        # Load static QR code image if it exists, otherwise show message
+        qr_path = os.path.join(os.path.dirname(__file__), "static_qr.png")
+        
+        if os.path.exists(qr_path):
+            try:
+                # Load and display the static QR code
+                qr_img = Image.open(qr_path)
+                qr_img = qr_img.resize((250, 250), Image.Resampling.LANCZOS)
+                self._qr_photo = ImageTk.PhotoImage(qr_img)
+                qr_label = ttk.Label(qr_frame, image=self._qr_photo)
+                qr_label.image = self._qr_photo  # Keep reference
+                qr_label.pack()
+                
+                ttk.Label(qr_frame, 
+                         text="Scan the QR code with any UPI app",
+                         font=('Helvetica', 12)).pack(pady=(15, 5))
+                
+            except Exception as e:
+                print(f"Error loading QR code: {str(e)}")
+                ttk.Label(qr_frame, 
+                         text="[QR Code Loading Error]",
+                         font=('Helvetica', 12),
+                         foreground='red').pack()
+        else:
+            # If no static QR code found, show payment instructions
             ttk.Label(qr_frame, 
-                     text="Scan the QR code with any UPI app",
-                     font=('Helvetica', 12)).pack(pady=(15, 5))
-            
-        except Exception as e:
-            print(f"Error generating QR code: {str(e)}")
+                     text="Please make payment to the following UPI ID:",
+                     font=('Helvetica', 14, 'bold')).pack(pady=(10, 5))
             ttk.Label(qr_frame, 
-                     text="[QR Code Generation Error]",
-                     font=('Helvetica', 12),
-                     foreground='red').pack()
+                     text="your-upi-id@okbizaxis",
+                     font=('Helvetica', 16, 'bold'),
+                     foreground=PRIMARY).pack(pady=(0, 10))
+            ttk.Label(qr_frame, 
+                     text=f"Amount: ₹{price:.2f}",
+                     font=('Helvetica', 14)).pack(pady=(0, 10))
+            ttk.Label(qr_frame, 
+                     text="After payment, click 'Payment Done' below",
+                     font=('Helvetica', 12, 'italic')).pack(pady=(10, 0))
         
         # Action buttons
         btn_frame = ttk.Frame(container)
