@@ -12,16 +12,42 @@ QUESTIONNAIRE_FILE = os.path.join(DATA_DIR, 'questionnaire.json')
 
 # Motor GPIO pins (BCM mode)
 # Each slot has forward and reverse pins
+# NOTE: remapped so logical slot numbers (1..9) point to the physical motor pins
+# according to the mapping you provided.
 MOTOR_PINS = {
-    1: {'forward': 17, 'reverse': 18},  # Pin 11, Pin 12
-    2: {'forward': 27, 'reverse': 22},  # Pin 13, Pin 15
-    3: {'forward': 23, 'reverse': 24},  # Pin 16, Pin 18
-    4: {'forward': 10, 'reverse': 9},   # Pin 19, Pin 21
-    5: {'forward': 25, 'reverse': 11},  # Pin 22, Pin 23
-    6: {'forward': 8, 'reverse': 7},    # Pin 24, Pin 26
-    7: {'forward': 5, 'reverse': 6},    # Pin 29, Pin 31
-    8: {'forward': 12, 'reverse': 13},  # Pin 32, Pin 33
-    9: {'forward': 16, 'reverse': 26},  # Pin 36, Pin 37
+    # Logical 1 maps to physical 8's pins
+    1: {'forward': 12, 'reverse': 13},  # physical 8
+    # Logical 2 maps to physical 8 as well
+    2: {'forward': 12, 'reverse': 13},  # physical 8
+    # Logical 3 -> physical 7
+    3: {'forward': 5,  'reverse': 6},   # physical 7
+    # Logical 4 -> physical 6
+    4: {'forward': 8,  'reverse': 7},   # physical 6
+    # Logical 5 -> physical 4
+    5: {'forward': 10, 'reverse': 9},   # physical 4
+    # Logical 6 -> physical 5
+    6: {'forward': 25, 'reverse': 11},  # physical 5
+    # Logical 7 -> physical 3
+    7: {'forward': 23, 'reverse': 24},  # physical 3
+    # Logical 8 -> physical 2
+    8: {'forward': 27, 'reverse': 22},  # physical 2
+    # Logical 9 -> physical 1
+    9: {'forward': 17, 'reverse': 18},  # physical 1
+}
+
+# Optional explicit mapping with inversion flags (from your calibration/observations)
+# Use this if other parts of code want to know whether logical-forward produces
+# physical-forward or whether commands must be inverted.
+MOTOR_MAP = {
+    1: {'physical': 8, 'invert': True},
+    2: {'physical': 8, 'invert': False},
+    3: {'physical': 7, 'invert': True},
+    4: {'physical': 6, 'invert': False},
+    5: {'physical': 4, 'invert': True},
+    6: {'physical': 5, 'invert': False},
+    7: {'physical': 3, 'invert': False},
+    8: {'physical': 2, 'invert': True},
+    9: {'physical': 1, 'invert': True},
 }
 
 # Printer configuration
