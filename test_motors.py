@@ -118,7 +118,7 @@ class MotorTester:
     def calibrate_interactive(self):
         """Interactive calibration wizard.
 
-        For each logical slot (1..9) the script will run the logical slot forward for 1s.
+        For each logical slot (1..9) the script will run the logical slot forward for 10s.
         You must observe which physical motor moved and whether it moved forward.
         Enter the physical slot number and 'y' if the observed motion was forward for the
         logical 'forward' command, otherwise enter 'n'. This builds a mapping and
@@ -129,11 +129,11 @@ class MotorTester:
         for logical in sorted(MOTOR_PINS.keys()):
             print('\n' + '-' * 40)
             print(f"Logical slot: {logical}")
-            input("Press Enter to run logical forward for 1s (will activate mapped physical motor)...")
+            input("Press Enter to run logical forward for 10s (will activate mapped physical motor)...")
 
             # Run logical command (use current mapping if present; temporarily identity)
-            # We run 1s forward on logical slot to let user observe which physical moved
-            self.test_motor(logical, 'f', 1.0)
+            # We run 10s forward on logical slot to let user observe which physical moved
+            self.test_motor(logical, 'f', 10.0)
 
             # Ask user which physical motor moved
             while True:
