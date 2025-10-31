@@ -2,7 +2,7 @@
 
 import time
 import RPi.GPIO as GPIO
-from config import MOTOR_PINS, MOTOR_MAP
+from config import MOTOR_PINS
 
 def setup_gpio():
     """Initialize GPIO settings"""
@@ -16,17 +16,10 @@ def setup_gpio():
     
     print("GPIO ready!")
 
-def run_motor_forward(logical_slot, duration=5):
+def run_motor_forward(slot, duration=5):
     """Run a motor forward for the specified duration"""
-    # Get physical mapping and inversion flag
-    mapping = MOTOR_MAP[logical_slot]
-    invert = mapping['invert']
-    
-    # Get the correct direction based on inversion flag
-    direction = 'reverse' if invert else 'forward'
-    
-    # Get the correct pin for this logical slot
-    pin = MOTOR_PINS[logical_slot][direction]
+    # Get the forward pin for this slot
+    pin = MOTOR_PINS[slot]['forward']
     
     print(f"Running logical motor {logical_slot} in true forward direction...")
     try:
