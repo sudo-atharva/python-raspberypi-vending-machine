@@ -675,7 +675,7 @@ class VendingGUI(ttk.Window):
             
             # Action buttons with fixed size
             buttons = [
-                ("❓ Help", 'info', self.show_mcq),
+                ("🔍 Select Symptoms", 'info', self.show_mcq),
                 ("🏠 Home", 'secondary', self.show_welcome)
             ]
             
@@ -717,7 +717,7 @@ class VendingGUI(ttk.Window):
             self.show_error("An error occurred while processing your request.")
 
     def show_mcq(self):
-        """Display MCQ questionnaire."""
+        """Display symptoms questionnaire to help select appropriate medicine."""
         self.clear_screen()
         
         frame = ttk.Frame(self.container)
