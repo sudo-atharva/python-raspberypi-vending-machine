@@ -673,28 +673,52 @@ class VendingGUI(ttk.Window):
             action_frame = ttk.Frame(main_frame)
             action_frame.pack(fill=X, pady=(10, 0))
             
-            # Action buttons with fixed size and explicit commands
-            select_symptoms_btn = ttk.Button(
+            # Create separate styles for bottom buttons
+            style = ttk.Style()
+            style.configure('Bottom.TButton', 
+                          font=('Arial', 18, 'bold'),
+                          padding=20)
+            
+            # Action buttons with enhanced configuration
+            select_symptoms_btn = tk.Button(
                 action_frame,
                 text="🔍 Select Symptoms",
-                style='info.TButton',
-                command=lambda: self.show_mcq(),
-                padding=10
+                font=('Arial', 18, 'bold'),
+                bg='#0d6efd',  # Bootstrap primary blue
+                fg='white',
+                relief='raised',
+                command=self.show_mcq,
+                padx=20,
+                pady=15,
+                cursor='hand2'
             )
-            select_symptoms_btn.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+            select_symptoms_btn.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
             
-            home_btn = ttk.Button(
+            # Bind hover effects
+            select_symptoms_btn.bind('<Enter>', lambda e: select_symptoms_btn.configure(bg='#0b5ed7'))
+            select_symptoms_btn.bind('<Leave>', lambda e: select_symptoms_btn.configure(bg='#0d6efd'))
+            
+            home_btn = tk.Button(
                 action_frame,
                 text="🏠 Home",
-                style='secondary.TButton',
-                command=lambda: self.show_welcome(),
-                padding=10
+                font=('Arial', 18, 'bold'),
+                bg='#6c757d',  # Bootstrap secondary gray
+                fg='white',
+                relief='raised',
+                command=self.show_welcome,
+                padx=20,
+                pady=15,
+                cursor='hand2'
             )
-            home_btn.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
+            home_btn.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
             
-            # Configure columns for equal width
-            action_frame.columnconfigure(0, weight=1)
-            action_frame.columnconfigure(1, weight=1)
+            # Bind hover effects
+            home_btn.bind('<Enter>', lambda e: home_btn.configure(bg='#5c636a'))
+            home_btn.bind('<Leave>', lambda e: home_btn.configure(bg='#6c757d'))
+            
+            # Configure columns for equal width with more space
+            action_frame.columnconfigure(0, weight=1, minsize=200)
+            action_frame.columnconfigure(1, weight=1, minsize=200)
             
             # Force UI update
             self.update_idletasks()
