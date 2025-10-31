@@ -571,9 +571,60 @@ class VendingGUI(ttk.Window):
             main_frame = ttk.Frame(self.container, padding=5)
             main_frame.pack(fill=BOTH, expand=True)
             
-            # Header with user info and logout
+            # Top action buttons first
+            action_frame = ttk.Frame(main_frame)
+            action_frame.pack(fill=X, pady=5)
+            
+            # Create separate styles for top buttons
+            style = ttk.Style()
+            style.configure('Top.TButton', 
+                          font=('Arial', 18, 'bold'),
+                          padding=15)
+            
+            # Action buttons with enhanced configuration in the top
+            select_symptoms_btn = tk.Button(
+                action_frame,
+                text="🔍 Select Symptoms",
+                font=('Arial', 18, 'bold'),
+                bg='#0d6efd',  # Bootstrap primary blue
+                fg='white',
+                relief='raised',
+                command=self.show_mcq,
+                padx=20,
+                pady=10,
+                cursor='hand2'
+            )
+            select_symptoms_btn.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+            
+            # Bind hover effects
+            select_symptoms_btn.bind('<Enter>', lambda e: select_symptoms_btn.configure(bg='#0b5ed7'))
+            select_symptoms_btn.bind('<Leave>', lambda e: select_symptoms_btn.configure(bg='#0d6efd'))
+            
+            home_btn = tk.Button(
+                action_frame,
+                text="🏠 Home",
+                font=('Arial', 18, 'bold'),
+                bg='#6c757d',  # Bootstrap secondary gray
+                fg='white',
+                relief='raised',
+                command=self.show_welcome,
+                padx=20,
+                pady=10,
+                cursor='hand2'
+            )
+            home_btn.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
+            
+            # Bind hover effects
+            home_btn.bind('<Enter>', lambda e: home_btn.configure(bg='#5c636a'))
+            home_btn.bind('<Leave>', lambda e: home_btn.configure(bg='#6c757d'))
+            
+            # Configure columns for equal width
+            action_frame.columnconfigure(0, weight=1)
+            action_frame.columnconfigure(1, weight=1)
+
+            # Header with user info and logout below the action buttons
             header = ttk.Frame(main_frame)
-            header.pack(fill=X, pady=(0, 5))
+            header.pack(fill=X, pady=10)
             
             # Display user name or ID if name is not available
             user_display = f"User ID: {self.current_user.get('id', 'N/A')}"
@@ -595,13 +646,13 @@ class VendingGUI(ttk.Window):
                 command=self.show_welcome
             ).pack(side=RIGHT, padx=5)
             
-            # Title
+            # Title for medicine selection
             ttk.Label(
                 main_frame,
                 text="Select a Medicine",
                 font=('Arial', 20, 'bold'),
                 bootstyle='secondary'
-            ).pack(pady=(0, 10))
+            ).pack(pady=(10, 10))
             
             # Medicine grid (3x3)
             grid_frame = ttk.Frame(main_frame)
@@ -669,56 +720,8 @@ class VendingGUI(ttk.Window):
                     bootstyle='secondary'
                 ).pack()
             
-            # Bottom action buttons
-            action_frame = ttk.Frame(main_frame)
-            action_frame.pack(fill=X, pady=(10, 0))
-            
-            # Create separate styles for bottom buttons
-            style = ttk.Style()
-            style.configure('Bottom.TButton', 
-                          font=('Arial', 18, 'bold'),
-                          padding=20)
-            
-            # Action buttons with enhanced configuration
-            select_symptoms_btn = tk.Button(
-                action_frame,
-                text="🔍 Select Symptoms",
-                font=('Arial', 18, 'bold'),
-                bg='#0d6efd',  # Bootstrap primary blue
-                fg='white',
-                relief='raised',
-                command=self.show_mcq,
-                padx=20,
-                pady=15,
-                cursor='hand2'
-            )
-            select_symptoms_btn.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
-            
-            # Bind hover effects
-            select_symptoms_btn.bind('<Enter>', lambda e: select_symptoms_btn.configure(bg='#0b5ed7'))
-            select_symptoms_btn.bind('<Leave>', lambda e: select_symptoms_btn.configure(bg='#0d6efd'))
-            
-            home_btn = tk.Button(
-                action_frame,
-                text="🏠 Home",
-                font=('Arial', 18, 'bold'),
-                bg='#6c757d',  # Bootstrap secondary gray
-                fg='white',
-                relief='raised',
-                command=self.show_welcome,
-                padx=20,
-                pady=15,
-                cursor='hand2'
-            )
-            home_btn.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
-            
-            # Bind hover effects
-            home_btn.bind('<Enter>', lambda e: home_btn.configure(bg='#5c636a'))
-            home_btn.bind('<Leave>', lambda e: home_btn.configure(bg='#6c757d'))
-            
-            # Configure columns for equal width with more space
-            action_frame.columnconfigure(0, weight=1, minsize=200)
-            action_frame.columnconfigure(1, weight=1, minsize=200)
+            # Space at the bottom
+            ttk.Frame(main_frame, height=20).pack(pady=10)
             
             # Force UI update
             self.update_idletasks()
