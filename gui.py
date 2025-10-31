@@ -673,21 +673,28 @@ class VendingGUI(ttk.Window):
             action_frame = ttk.Frame(main_frame)
             action_frame.pack(fill=X, pady=(10, 0))
             
-            # Action buttons with fixed size
-            buttons = [
-                ("🔍 Select Symptoms", 'info', self.show_mcq),
-                ("🏠 Home", 'secondary', self.show_welcome)
-            ]
+            # Action buttons with fixed size and explicit commands
+            select_symptoms_btn = ttk.Button(
+                action_frame,
+                text="🔍 Select Symptoms",
+                style='info.TButton',
+                command=lambda: self.show_mcq(),
+                padding=10
+            )
+            select_symptoms_btn.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
             
-            for i, (text, style, cmd) in enumerate(buttons):
-                btn = ttk.Button(
-                    action_frame,
-                    text=text,
-                    style=f'{style}.TButton',
-                    command=cmd
-                )
-                btn.grid(row=0, column=i, padx=5, pady=5, sticky="nsew")
-                action_frame.columnconfigure(i, weight=1)
+            home_btn = ttk.Button(
+                action_frame,
+                text="🏠 Home",
+                style='secondary.TButton',
+                command=lambda: self.show_welcome(),
+                padding=10
+            )
+            home_btn.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
+            
+            # Configure columns for equal width
+            action_frame.columnconfigure(0, weight=1)
+            action_frame.columnconfigure(1, weight=1)
             
             # Force UI update
             self.update_idletasks()
