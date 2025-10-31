@@ -21,14 +21,14 @@ def run_motor_forward(slot, duration=5):
     # Get the forward pin for this slot
     pin = MOTOR_PINS[slot]['forward']
     
-    print(f"Running logical motor {logical_slot} in true forward direction...")
+    print(f"Running motor {slot} forward...")
     try:
         GPIO.output(pin, GPIO.HIGH)
         time.sleep(duration)
         GPIO.output(pin, GPIO.LOW)
-        print(f"Motor {logical_slot} complete!")
+        print(f"Motor {slot} complete!")
     except Exception as e:
-        print(f"Error running motor {logical_slot}: {e}")
+        print(f"Error running motor {slot}: {e}")
         GPIO.output(pin, GPIO.LOW)  # Safety: ensure motor is stopped
 
 def main():
