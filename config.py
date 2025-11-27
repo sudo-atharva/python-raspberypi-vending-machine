@@ -21,7 +21,7 @@ MOTOR_PINS = {
     5: {'forward': 25, 'reverse': 11},  # Pin 22, Pin 23 (unchanged)
     9: {'forward': 7,  'reverse': 8},   # Pin 26, Pin 24
     8: {'forward': 6,  'reverse': 5},   # Pin 31, Pin 29
-    6: {'forward': 13, 'reverse': 12},  # Pin 33, Pin 32
+    6: {'forward': 12, 'reverse': 13},  # Pin 33, Pin 32
     7: {'forward': 26, 'reverse': 16},  # Pin 37, Pin 36
 }
 
